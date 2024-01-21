@@ -12,17 +12,17 @@ import (
 )
 
 type Users struct {
-	Id        int       `db:"id,primaryKey"`
-	Name      string    `db:"name"`
-	Email     string    `db:"email"`
-	Title     string    `db:"title"`
-	Active    bool      `db:"active"`
-	Votes     int       `db:"votes"`
-	Balance   float64   `db:"balance"`
-	CreatedAt time.Time `db:"created_at"`
+	Id        int       `jc:"id,primaryKey"`
+	Name      string    `jc:"name"`
+	Email     string    `jc:"email"`
+	Title     string    `jc:"title"`
+	Active    bool      `jc:"active"`
+	Votes     int       `jc:"votes"`
+	Balance   float64   `jc:"balance"`
+	CreatedAt time.Time `jc:"created_at"`
 }
 
-func db() *DbGo {
+func jc() *DbGo {
     return *
 }
 ```
@@ -142,7 +142,7 @@ db.Table("users").
 ```
 - Subquery Joins
 ```go
-latestPosts := db.able("posts").Select("user_id", dbgo.Raw("MAX(created_at) as last_post_created_at")).Where("is_published", true).GroupBy("user_id")
+latestPosts := jc.able("posts").Select("user_id", dbgo.Raw("MAX(created_at) as last_post_created_at")).Where("is_published", true).GroupBy("user_id")
 db.Table("users").JoinSub(latestPosts, "latest_posts", function (joins dbgo.JoinClause) {
             joins.On("users.id", "=", "latest_posts.user_id")
         }).Get()
@@ -202,19 +202,19 @@ db.Table("comments").WhereIn("user_id", activeUsers).Get()
 //)
 
 // whereNull / whereNotNull / orWhereNull / orWhereNotNull
-db.Ttable("users").WhereNull("updated_at").Get()
-db.Ttable("users").WhereNotNull("updated_at").Get()
+jc.Ttable("users").WhereNull("updated_at").Get()
+jc.Ttable("users").WhereNotNull("updated_at").Get()
 
 // whereDate / whereMonth / whereDay / whereYear / whereTime
-db.Ttable("users").WhereDate("created_at", "2016-12-31").Get()
-db.Ttable("users").WhereMonth("created_at", "12").Get()
-db.Ttable("users").WhereDay("created_at", "31").Get()
-db.Ttable("users").WhereYear("created_at", "2016").Get()
-db.Ttable("users").WhereTime("created_at", "=", "11:20:45").Get()
+jc.Ttable("users").WhereDate("created_at", "2016-12-31").Get()
+jc.Ttable("users").WhereMonth("created_at", "12").Get()
+jc.Ttable("users").WhereDay("created_at", "31").Get()
+jc.Ttable("users").WhereYear("created_at", "2016").Get()
+jc.Ttable("users").WhereTime("created_at", "=", "11:20:45").Get()
 
 // whereColumn / orWhereColumn
-db.Ttable("users").WhereColumn("first_name", "last_name").Get()
-db.Ttable("users").WhereColumn("updated_at", ">", "created_at").Get()
+jc.Ttable("users").WhereColumn("first_name", "last_name").Get()
+jc.Ttable("users").WhereColumn("updated_at", ">", "created_at").Get()
 db.Table("users").WhereColumn([][]string{
     {"first_name", "=", "last_name"},
     {"updated_at", ">", "created_at"},

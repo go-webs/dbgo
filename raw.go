@@ -18,7 +18,8 @@ type rawStructs struct {
 //	arg: expressions
 //	binds: bind values
 func (db Database) SelectRaw(arg string, binds ...any) Database {
-	db.selectRaw = append(db.selectRaw, rawStruct{arg, binds})
+	//db.selectRaw = append(db.selectRaw, rawStruct{arg, binds})
+	db.SelectBuilder.SelectRaw(arg, binds...)
 	return db
 }
 
@@ -28,7 +29,13 @@ func (db Database) SelectRaw(arg string, binds ...any) Database {
 //	arg: expressions
 //	binds: bind values
 func (db Database) WhereRaw(arg string, binds ...any) Database {
-	db.whereRaw = append(db.whereRaw, rawStruct{arg, binds})
+	db.WhereBuilder.WhereRaw(arg, binds)
+	return db
+}
+
+// OrWhereRaw fields with binds
+func (db Database) OrWhereRaw(arg string, binds ...any) Database {
+	db.WhereBuilder.OrWhereRaw(arg, binds)
 	return db
 }
 

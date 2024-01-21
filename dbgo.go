@@ -3,6 +3,7 @@ package dbgo
 import (
 	"cmp"
 	"fmt"
+	"gitub.com/go-webs/dbgo/builder"
 	"gitub.com/go-webs/dbgo/iface"
 	"reflect"
 	"regexp"
@@ -23,9 +24,7 @@ func Open(conf *Cluster) *DbGo {
 }
 
 func (dg *DbGo) NewDB() *Database {
-	return &Database{
-		DbGo: dg,
-	}
+	return NewDB(dg)
 }
 func Raw[T cmp.Ordered](args ...T) iface.TypeRaw {
 	argsStr := Map[T, []T, string](args, func(s T) string {
@@ -42,8 +41,11 @@ func Map[Data any, Datas ~[]Data, Result any](datas Datas, mapper func(Data) Res
 	return results
 }
 
-func TableAs(table any, as string) []any {
-	return []any{table, as}
+//	func TableAs(table any, as string) []any {
+//		return []any{table, as}
+//	}
+func TableAs(table any, as string) *builder.TableBuilder {
+	return builder.NewTableBuilder("").Table(table, as)
 }
 
 func NamedSprintf(format string, a ...any) string {

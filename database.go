@@ -1,19 +1,36 @@
 package dbgo
 
-import "gitub.com/go-webs/dbgo/iface"
+import (
+	"gitub.com/go-webs/dbgo/builder"
+)
 
 type Database struct {
 	*DbGo
 	rawStructs
-	tableStruct
-	joinStruct
-	selectStruct
-	selects  []any
+	//tableStruct
+	//joinStruct
+	//selectStruct
+	//selects  []any
 	distinct string
 	//tables          tableStruct
 	where           [][]interface{}
 	whereBindValues []interface{}
-	union           iface.IUnion
+	//union           iface.IUnion
+
+	*builder.TableBuilder
+	*builder.SelectBuilder
+	*builder.JoinBuilder
+	*builder.WhereBuilder
+}
+
+func NewDB(dg *DbGo) *Database {
+	return &Database{
+		DbGo:          dg,
+		TableBuilder:  builder.NewTableBuilder(dg.Cluster.Prefix),
+		SelectBuilder: builder.NewSelectBuilder(),
+		JoinBuilder:   builder.NewJoinBuilder(dg.Cluster.Prefix),
+		WhereBuilder:  builder.NewWhereBuilder(),
+	}
 }
 
 // Distinct for distinct

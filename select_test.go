@@ -8,7 +8,7 @@ func TestDatabase_Select(t *testing.T) {
 	var expect = "`id`,name as n"
 	assertsEqual(t, expect, fields)
 	expect = "SELECT `id`,name as n FROM `test_users`"
-	assertsEqual(t, expect, build.ToSql())
+	assertsEqual(t, expect, build.ToSqlOnly())
 }
 
 func TestDatabase_SelectRaw(t *testing.T) {
@@ -18,6 +18,6 @@ func TestDatabase_SelectRaw(t *testing.T) {
 	var expect = "`id`,name as n,price * ? as price_with_tax"
 	assertsEqual(t, expect, fields)
 	expect = "SELECT `id`,name as n,price * ? as price_with_tax FROM `test_users`"
-	assertsEqual(t, expect, build.ToSql())
+	assertsEqual(t, expect, build.ToSqlOnly())
 	assertsEqual(t, 1.0825, binds[0].(float64))
 }
