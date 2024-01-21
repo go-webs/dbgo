@@ -5,7 +5,7 @@ func (db Database) ToSql() string {
 
 	var distinct = db.distinct
 	var fields, binds = db.BuildSelect()
-	var table = db.buildTable(db.tables)
+	var table = db.BuildTable()
 	var join = db.BuildJoin()
 	var where = ""
 	var group = ""
