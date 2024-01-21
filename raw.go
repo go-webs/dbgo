@@ -1,13 +1,13 @@
 package dbgo
 
-type rawBinding struct {
+type rawStruct struct {
 	expression string
 	binds      []any
 }
-type rawStruct struct {
-	selectRaw  []rawBinding
-	whereRaw   []rawBinding
-	havingRaw  []rawBinding
+type rawStructs struct {
+	selectRaw  []rawStruct
+	whereRaw   []rawStruct
+	havingRaw  []rawStruct
 	orderByRaw []string
 	groupByRaw []string
 }
@@ -18,7 +18,7 @@ type rawStruct struct {
 //	arg: expressions
 //	binds: bind values
 func (db Database) SelectRaw(arg string, binds ...any) Database {
-	db.selectRaw = append(db.selectRaw, rawBinding{arg, binds})
+	db.selectRaw = append(db.selectRaw, rawStruct{arg, binds})
 	return db
 }
 
@@ -28,7 +28,7 @@ func (db Database) SelectRaw(arg string, binds ...any) Database {
 //	arg: expressions
 //	binds: bind values
 func (db Database) WhereRaw(arg string, binds ...any) Database {
-	db.whereRaw = append(db.whereRaw, rawBinding{arg, binds})
+	db.whereRaw = append(db.whereRaw, rawStruct{arg, binds})
 	return db
 }
 
@@ -38,7 +38,7 @@ func (db Database) WhereRaw(arg string, binds ...any) Database {
 //	arg: expressions
 //	binds: bind values
 func (db Database) HavingRaw(arg string, binds ...any) Database {
-	db.havingRaw = append(db.havingRaw, rawBinding{arg, binds})
+	db.havingRaw = append(db.havingRaw, rawStruct{arg, binds})
 	return db
 }
 

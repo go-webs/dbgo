@@ -26,7 +26,7 @@ func TestDatabase_TableAs(t *testing.T) {
 	assertsEqual(t, expect, build.ToSql())
 
 	var users []Users
-	var build2 = db().TableAs(&users, "a")
+	var build2 = db().Table(&users, "a")
 	var expect2 = "`test_users` a"
 	assertsEqual(t, expect2,
 		build2.BuildTable())

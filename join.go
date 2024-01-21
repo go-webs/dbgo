@@ -73,7 +73,7 @@ func (db Database) BuildJoin() (joins string) {
 		return fmt.Sprintf("UNION ALL (%s)", db.union.ToSql())
 	}
 	for _, v := range db.joins {
-		tab := db.buildTable(v[1])
+		tab := newTable(db.DbGo.Cluster.Prefix, v[1]).buildTable()
 		if v[0] == "CROSS JOIN" {
 			joins = fmt.Sprintf("%s %s %s", joins, v[0], tab)
 		} else if v[0] == "JOIN" {

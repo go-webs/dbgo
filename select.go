@@ -6,6 +6,11 @@ import (
 	"strings"
 )
 
+type selectStruct struct {
+	selects    []any
+	selectRaws []rawStruct
+}
+
 // Select fields
 // args: string | iface.TypeRaw
 func (db Database) Select(args ...any) Database {
@@ -22,6 +27,11 @@ func (db Database) AddSelect(args ...any) Database {
 
 // BuildSelect fields clause
 func (db Database) BuildSelect() (fields string, binds []any) {
+	return db.selectStruct.buildSelect()
+}
+
+// BuildSelect fields clause
+func (db selectStruct) buildSelect() (fields string, binds []any) {
 	var tmp []string
 	for _, v := range db.selects {
 		if iface.IsTypeRaw(v) {
@@ -35,7 +45,7 @@ func (db Database) BuildSelect() (fields string, binds []any) {
 			}
 		}
 	}
-	for _, v := range db.selectRaw {
+	for _, v := range db.selectRaws {
 		tmp = append(tmp, v.expression)
 		binds = append(binds, v.binds...)
 	}

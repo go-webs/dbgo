@@ -4,9 +4,10 @@ import "gitub.com/go-webs/dbgo/iface"
 
 type Database struct {
 	*DbGo
-	rawStruct
+	rawStructs
 	tableStruct
 	joinStruct
+	selectStruct
 	selects  []any
 	distinct string
 	//tables          tableStruct

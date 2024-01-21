@@ -60,7 +60,7 @@ func TestDatabase_JoinOn(t *testing.T) {
 }
 func TestDatabase_Union(t *testing.T) {
 	var build = db().Table("users").
-		Union(db().TableAs("card", "b"))
+		Union(db().Table("card", "b"))
 	fields := build.BuildJoin()
 	var expect = "UNION ALL (SELECT * FROM `test_card` b)"
 	assertsEqual(t, expect, fields)
