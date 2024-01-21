@@ -129,22 +129,22 @@ db.Table("sizes").
 ```
 - Advanced Join Clauses
 ```go
-db.Table("users").Join("contacts", func (join dbgo.JoinClause) {
-            join.On("users.id", "=", "contacts.user_id").OrOn(/* ... */);
+db.Table("users").Join("contacts", func (joins dbgo.JoinClause) {
+            joins.On("users.id", "=", "contacts.user_id").OrOn(/* ... */);
         }).
         Get()
 
 db.Table("users").
-    Join("contacts", func (join dbgo.JoinClause) {
-        join.On("users.id", "=", "contacts.user_id").Where("contacts.user_id", ">", 5)
+    Join("contacts", func (joins dbgo.JoinClause) {
+        joins.On("users.id", "=", "contacts.user_id").Where("contacts.user_id", ">", 5)
     }).
     Get();
 ```
 - Subquery Joins
 ```go
-latestPosts := db.able("posts").Select("user_id", DB::raw("MAX(created_at) as last_post_created_at")).Where("is_published", true).GroupBy("user_id")
-db.Table("users").JoinSub(latestPosts, "latest_posts", function (join dbgo.JoinClause) {
-            join.On("users.id", "=", "latest_posts.user_id")
+latestPosts := db.able("posts").Select("user_id", dbgo.Raw("MAX(created_at) as last_post_created_at")).Where("is_published", true).GroupBy("user_id")
+db.Table("users").JoinSub(latestPosts, "latest_posts", function (joins dbgo.JoinClause) {
+            joins.On("users.id", "=", "latest_posts.user_id")
         }).Get()
 ```
 
@@ -160,7 +160,7 @@ db.Table("users").Where("votes","=",100).Where("age",">",35).Get()
 db.Table("users").Where("votes",">=",100).Get()
 db.Table("users").Where("votes","<>",100).Get()
 db.Table("users").Where("name","like","Joh%").Get()
-db.Table("users").Where([][]interface{}{
+db.Table("users").Where([][]any{
 	{"status", "=", 1},
 	{"subscribed", "<>", 1},
 }).Get()
@@ -221,7 +221,7 @@ db.Table("users").WhereColumn([][]string{
 }).Get()
 
 // Logical Grouping
-db.Table("users").Where("name", "=", "John").Where(func (query dbgo.Builder) {
+db.Table("users").Where("name", "=", "John").Where(func (query dbgo.WhereClause) {
         query.Where("votes", ">", 100).OrWhere("title", "=", "Admin")
     }).Get()
 // The example above will produce the following SQL:
@@ -230,8 +230,8 @@ db.Table("users").Where("name", "=", "John").Where(func (query dbgo.Builder) {
 ### Advanced Where Clauses
 ```go
 // Where Exists Clauses
-db.Table("users").WhereExists(func (query dbgo.Builder) {
-        query.Select(dbgo.Raw(1)).From("orders").WhereColumn("orders.user_id", "users.id")
+db.Table("users").WhereExists(func (query dbgo.Database) {
+        query.Select(dbgo.Raw(1)).Table("orders").WhereColumn("orders.user_id", "users.id")
     }).Get()
 
 orders := db.Table("orders").Select(dbgo.Raw(1)).WhereColumn("orders.user_id", "users.id")
@@ -248,7 +248,7 @@ db.Table("income").Where("amount", "<", func (query dbgo.Builder) {
         query.SelectRaw("avg(i.amount)").From("incomes as i")
     }).Get()
 
-// Full Text Where Clauses
+// Full Text Where Clauses: match(bio) against("web developer")
 db.Table("users").WhereFullText("bio", "web developer").Get()
 ```
 ### Ordering, Grouping, Limit and Offset
