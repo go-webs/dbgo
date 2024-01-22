@@ -91,7 +91,7 @@ func (jc *JoinBuilder) BuildJoin() (joins string, bindValues []any, err error) {
 			return
 		}
 		//joins = jc.union.ToSqlOnly()
-		joins = fmt.Sprintf("UNION ALL (%s)", joins)
+		joins = fmt.Sprintf("UNION (%s)", joins)
 		return
 	}
 	for _, v := range jc.joins {

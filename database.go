@@ -21,15 +21,21 @@ type Database struct {
 	*builder.SelectBuilder
 	*builder.JoinBuilder
 	*builder.WhereBuilder
+	*builder.GroupBuilder
+	*builder.OrderByBuilder
+	*builder.PageBuilder
 }
 
 func NewDB(dg *DbGo) *Database {
 	return &Database{
-		DbGo:          dg,
-		TableBuilder:  builder.NewTableBuilder(dg.Cluster.Prefix),
-		SelectBuilder: builder.NewSelectBuilder(),
-		JoinBuilder:   builder.NewJoinBuilder(dg.Cluster.Prefix),
-		WhereBuilder:  builder.NewWhereBuilder(),
+		DbGo:           dg,
+		TableBuilder:   builder.NewTableBuilder(dg.Cluster.Prefix),
+		SelectBuilder:  builder.NewSelectBuilder(),
+		JoinBuilder:    builder.NewJoinBuilder(dg.Cluster.Prefix),
+		WhereBuilder:   builder.NewWhereBuilder(),
+		GroupBuilder:   builder.NewGroupBuilder(),
+		OrderByBuilder: builder.NewOrderByBuilder(),
+		PageBuilder:    builder.NewPageBuilder(),
 	}
 }
 

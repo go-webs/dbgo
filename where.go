@@ -1,5 +1,7 @@
 package dbgo
 
+import "fmt"
+
 var operator = []string{"=", ">", "<", "!=", "<>", ">=", "<=", "like", "not like",
 	"in", "not in", "between", "not between", "regexp", "not regexp"}
 
@@ -32,22 +34,22 @@ func (db Database) OrWhere(args ...interface{}) Database {
 
 // WhereNull ...
 func (db Database) WhereNull(arg string) Database {
-	return db.Where(arg, "IS", "NULL")
+	return db.Where(fmt.Sprintf("`%s` IS NULL", arg))
 }
 
 // OrWhereNull ...
 func (db Database) OrWhereNull(arg string) Database {
-	return db.OrWhere(arg, "IS", "NULL")
+	return db.OrWhere(fmt.Sprintf("`%s` IS NULL", arg))
 }
 
 // WhereNotNull ...
 func (db Database) WhereNotNull(arg string) Database {
-	return db.Where(arg, "IS NOT", "NULL")
+	return db.Where(fmt.Sprintf("`%s` IS NOT NULL", arg))
 }
 
 // OrWhereNotNull ...
 func (db Database) OrWhereNotNull(arg string) Database {
-	return db.OrWhere(arg, "IS NOT", "NULL")
+	return db.OrWhere(fmt.Sprintf("`%s` IS NOT NULL", arg))
 }
 
 // WhereRegexp ...

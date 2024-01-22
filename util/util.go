@@ -1,8 +1,11 @@
-package dbgo
+package util
 
 import (
+	"fmt"
 	"math/rand"
 	"reflect"
+	"regexp"
+	"strings"
 	"time"
 )
 
@@ -54,4 +57,32 @@ func SliceContains(haystack []string, needle string) bool {
 func getRandomInt(num int) int {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 	return rand.Intn(num)
+}
+
+func Map[Data any, Datas ~[]Data, Result any](datas Datas, mapper func(Data) Result) []Result {
+	results := make([]Result, 0, len(datas))
+	for _, data := range datas {
+		results = append(results, mapper(data))
+	}
+	return results
+}
+
+func NamedSprintf(format string, a ...any) string {
+	str := regexp.MustCompile(`:\w+`).ReplaceAllString(format, "%s")
+	return strings.TrimSpace(regexp.MustCompile(`\s{2,}`).ReplaceAllString(fmt.Sprintf(str, a...), " "))
+}
+
+func BackQuotes(arg any) string {
+	var tmp []string
+	if v, ok := arg.(string); ok {
+		split := strings.Split(v, " ")
+		split2 := strings.Split(split[0], ".")
+		if len(split2) > 1 {
+			tmp = append(tmp, fmt.Sprintf("`%s`.`%s`", split2[0], split2[1]))
+		} else {
+			tmp = append(tmp, fmt.Sprintf("`%s`", split2[len(split2)-1]))
+		}
+		tmp = append(tmp, split[1:]...)
+	}
+	return strings.Join(tmp, " ")
 }
