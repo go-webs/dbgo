@@ -5,9 +5,12 @@ import (
 	"gitub.com/go-webs/dbgo/util"
 )
 
-func (db Database) BuildQuery() (sqls string, values []any, err error) {
+func (db Database) BuildSqlQuery() (sqlSegment string, values []any, err error) {
 	return db.ToSqlOnly(), values, err
 }
+func (db Database) BuildSqlInsert() (sqlSegment string, values []any, err error) { return }
+func (db Database) BuildSqlUpdate() (sqlSegment string, values []any, err error) { return }
+func (db Database) BuildSqlDelete() (sqlSegment string, values []any, err error) { return }
 func (db Database) ToSqlOnly() string {
 	var values []any
 
