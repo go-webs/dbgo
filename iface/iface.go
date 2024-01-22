@@ -17,6 +17,6 @@ type iFace interface {
 }
 
 type IUnion interface {
-	BuildQuery() (string, []any, error)
+	BuildSqlQuery() (string, []any, error)
 	ToSqlOnly() string
 }

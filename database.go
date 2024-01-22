@@ -44,3 +44,9 @@ func (db Database) Distinct() Database {
 	db.distinct = "DISTINCT"
 	return db
 }
+
+// Insert data
+func (db Database) Insert(data any) error {
+	db.BuildSqlInsert(data)
+	return nil
+}

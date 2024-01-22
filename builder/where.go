@@ -31,7 +31,7 @@ func NewWhereBuilder() *WhereBuilder {
 	return &WhereBuilder{}
 }
 
-func (w *WhereBuilder) Where(args ...any) *WhereBuilder {
+func (w *WhereBuilder) Where(args ...any) iface.WhereClause {
 	w.wheres = append(w.wheres, whereStruct{
 		relation:    "AND",
 		expressions: args,
@@ -39,7 +39,7 @@ func (w *WhereBuilder) Where(args ...any) *WhereBuilder {
 	return w
 }
 
-func (w *WhereBuilder) OrWhere(args ...any) *WhereBuilder {
+func (w *WhereBuilder) OrWhere(args ...any) iface.WhereClause {
 	w.wheres = append(w.wheres, whereStruct{
 		relation:    "OR",
 		expressions: args,
@@ -47,7 +47,7 @@ func (w *WhereBuilder) OrWhere(args ...any) *WhereBuilder {
 	return w
 }
 
-func (w *WhereBuilder) WhereRaw(arg string, binds ...any) *WhereBuilder {
+func (w *WhereBuilder) WhereRaw(arg string, binds ...any) iface.WhereClause {
 	w.wheresRaw = append(w.wheresRaw, whereRawStruct{
 		relation: "AND",
 		expressions: rawStruct{
@@ -58,7 +58,7 @@ func (w *WhereBuilder) WhereRaw(arg string, binds ...any) *WhereBuilder {
 	return w
 }
 
-func (w *WhereBuilder) OrWhereRaw(arg string, binds ...any) *WhereBuilder {
+func (w *WhereBuilder) OrWhereRaw(arg string, binds ...any) iface.WhereClause {
 	w.wheresRaw = append(w.wheresRaw, whereRawStruct{
 		relation: "OR",
 		expressions: rawStruct{
@@ -144,7 +144,7 @@ func (w *WhereBuilder) parseWhere() (string, error) {
 				if len(whereMore) != 0 {
 					where = append(where, condition+" ("+strings.Join(whereMore, " and ")+")")
 				}
-			case func(*WhereBuilder):
+			case func(wh iface.WhereClause):
 				// 清空where,给嵌套的where让路,复用这个节点
 				w.wheres = []whereStruct{}
 
@@ -215,7 +215,7 @@ func (w *WhereBuilder) parseParams(args []any) (s string, err error) {
 				paramsToArr = append(paramsToArr, "("+strings.Join(tmp, ",")+")")
 			default: // sub query
 				if v, ok := argsReal[2].(iface.IUnion); ok {
-					query, anies, err2 := v.BuildQuery()
+					query, anies, err2 := v.BuildSqlQuery()
 					if err2 != nil {
 						return s, err2
 					}
@@ -231,8 +231,18 @@ func (w *WhereBuilder) parseParams(args []any) (s string, err error) {
 			w.SetBindValues(ar2[1])
 
 		default:
-			paramsToArr = append(paramsToArr, w.GetPlaceholder())
-			w.SetBindValues(argsReal[2])
+			// sub query
+			if v, ok := argsReal[2].(iface.IUnion); ok {
+				query, anies, err2 := v.BuildSqlQuery()
+				if err2 != nil {
+					return s, err2
+				}
+				paramsToArr = append(paramsToArr, fmt.Sprintf("(%s)", query))
+				w.SetBindValues(anies...)
+			} else {
+				paramsToArr = append(paramsToArr, w.GetPlaceholder())
+				w.SetBindValues(argsReal[2])
+			}
 		}
 	case 2:
 		paramsToArr = append(paramsToArr, w.AddFieldQuotes(argsReal[0].(string)))
@@ -247,13 +257,16 @@ func (w *WhereBuilder) parseParams(args []any) (s string, err error) {
 }
 
 func (w *WhereBuilder) BuildWhereOnly() (where string) {
-	where, _, _ = w.BuildWhere()
-	return
-}
-func (w *WhereBuilder) BuildWhere() (where string, values []interface{}, err error) {
 	// 存储原values
 	var valuesClone = slices.Clone(w.whereBindValues)
 
+	where, _, _ = w.BuildWhere()
+
+	// 还原values
+	w.whereBindValues = slices.Clone(valuesClone)
+	return
+}
+func (w *WhereBuilder) BuildWhere() (where string, values []interface{}, err error) {
 	where, err = w.parseWhere()
 	if err != nil {
 		return
@@ -261,9 +274,6 @@ func (w *WhereBuilder) BuildWhere() (where string, values []interface{}, err err
 	for _, v := range w.whereBindValues {
 		values = append(values, v)
 	}
-
-	// 还原values
-	w.whereBindValues = slices.Clone(valuesClone)
 	return
 }
 

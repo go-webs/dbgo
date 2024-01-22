@@ -86,7 +86,7 @@ func (jc *JoinBuilder) CrossJoin(table any) *JoinBuilder {
 // BuildJoin expressions
 func (jc *JoinBuilder) BuildJoin() (joins string, bindValues []any, err error) {
 	if jc.union != nil {
-		joins, bindValues, err = jc.union.BuildQuery()
+		joins, bindValues, err = jc.union.BuildSqlQuery()
 		if err != nil {
 			return
 		}
