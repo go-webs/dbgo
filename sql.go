@@ -44,9 +44,17 @@ func (db Database) BuildSqlQuery() (sql4prepare string, values []any, err error)
 	//else {
 	//	// 从struct构建where
 	//}
+	var locks string
+	if db.locking != nil {
+		if *db.locking {
+			locks = "FOR UPDATE"
+		} else {
+			locks = "LOCK IN SHARE MODE"
+		}
+	}
 
-	sql4prepare = util.NamedSprintf("SELECT :distinct :fields FROM :tables :joins :wheres :groups :havings :orderBys :page",
-		distinct, fields, tables, joins, wheres, groups, havingS, orderBys, pagination)
+	sql4prepare = util.NamedSprintf("SELECT :distinct :fields FROM :tables :joins :wheres :groups :havings :orderBys :page :locks",
+		distinct, fields, tables, joins, wheres, groups, havingS, orderBys, pagination, locks)
 	return
 }
 func (db Database) BuildSqlExists() (sql4prepare string, values []any, err error) {

@@ -3,6 +3,7 @@ package dbgo
 import (
 	"cmp"
 	"database/sql"
+	"fmt"
 	"gitub.com/go-webs/dbgo/builder"
 	"gitub.com/go-webs/dbgo/iface"
 	"gitub.com/go-webs/dbgo/util"
@@ -12,9 +13,12 @@ import (
 
 type DbGo struct {
 	*Cluster
-	master []*sql.DB
-	slave  []*sql.DB
-	Error  error
+	master  []*sql.DB
+	slave   []*sql.DB
+	SqlLogs []string
+
+	enableQueryLog bool
+	Error          error
 }
 
 // Open db
@@ -45,14 +49,25 @@ func Open(conf ...any) *DbGo {
 	return &dg
 }
 
-func (dg *DbGo) getMasterDB() *sql.DB {
+func (dg *DbGo) MasterDB() *sql.DB {
 	return dg.master[util.GetRandomInt(len(dg.master))]
 }
-func (dg *DbGo) getSlaveDB() *sql.DB {
+func (dg *DbGo) SlaveDB() *sql.DB {
 	return dg.slave[util.GetRandomInt(len(dg.slave))]
 }
 func (dg *DbGo) NewDB() *Database {
-	return NewDB(dg)
+	return newDatabase(dg)
+}
+func (dg *DbGo) EnableQueryLog(b bool) {
+	dg.enableQueryLog = b
+}
+func (dg *DbGo) recordSqlLog(queryStr string, values ...interface{}) {
+	if dg.enableQueryLog {
+		dg.SqlLogs = append(dg.SqlLogs, fmt.Sprintf("%s, %v", queryStr, values))
+	}
+}
+func (dg *DbGo) LastSql() string {
+	return dg.SqlLogs[len(dg.SqlLogs)-1]
 }
 
 func Raw[T cmp.Ordered](args ...T) iface.TypeRaw {

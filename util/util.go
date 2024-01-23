@@ -10,6 +10,9 @@ import (
 	"time"
 )
 
+func PtrBool(arg bool) *bool {
+	return &arg
+}
 func PtrString(arg string) *string {
 	return &arg
 }

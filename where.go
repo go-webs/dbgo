@@ -2,9 +2,6 @@ package dbgo
 
 import "fmt"
 
-var operator = []string{"=", ">", "<", "!=", "<>", ">=", "<=", "like", "not like",
-	"in", "not in", "between", "not between", "regexp", "not regexp"}
-
 // Where : query or execute where condition, the relation is and
 func (db Database) Where(args ...interface{}) Database {
 	if len(args) == 0 {
@@ -18,7 +15,7 @@ func (db Database) Where(args ...interface{}) Database {
 	return db
 }
 
-// Where : query or execute where condition, the relation is and
+// OrWhere : query or execute where condition, the relation is or
 func (db Database) OrWhere(args ...interface{}) Database {
 	if len(args) == 0 {
 		return db
@@ -29,6 +26,22 @@ func (db Database) OrWhere(args ...interface{}) Database {
 	//db.where = append(db.where, w)
 	db.WhereBuilder.OrWhere(args...)
 
+	return db
+}
+
+// WhereRaw fields with binds
+// params
+//
+//	arg: expressions
+//	binds: bind values
+func (db Database) WhereRaw(arg string, binds ...any) Database {
+	db.WhereBuilder.WhereRaw(arg, binds)
+	return db
+}
+
+// OrWhereRaw fields with binds
+func (db Database) OrWhereRaw(arg string, binds ...any) Database {
+	db.WhereBuilder.OrWhereRaw(arg, binds)
 	return db
 }
 

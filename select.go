@@ -19,6 +19,17 @@ func (db Database) AddSelect(args ...any) Database {
 	return db
 }
 
+// SelectRaw fields
+// params
+//
+//	arg: expressions
+//	binds: bind values
+func (db Database) SelectRaw(arg string, binds ...any) Database {
+	//db.selectRaw = append(db.selectRaw, rawStruct{arg, binds})
+	db.SelectBuilder.SelectRaw(arg, binds...)
+	return db
+}
+
 //// BuildSelect fields clause
 //func (db Database) BuildSelect() (fields string, binds []any) {
 //	return db.SelectBuilder.BuildSelect()

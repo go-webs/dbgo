@@ -1,16 +1,40 @@
 package dbgo
 
+import (
+	"fmt"
+	"gitub.com/go-webs/dbgo/util"
+)
+
 func (db Database) Get() (result []map[string]any, err error) {
-	//prepare, values, err := db.BuildSqlQuery()
-	//if err != nil {
-	//	return result, err
-	//}
-	//db.Query()
+	prepare, values, err := db.BuildSqlQuery()
+	if err != nil {
+		return result, err
+	}
+
+	err = db.query(&result, prepare, values...)
 	return
 }
-func (db Database) First() (result []map[string]any, err error) { return }
-func (db Database) Find() (result []map[string]any, err error)  { return }
-func (db Database) Max() (result []map[string]any, err error)   { return }
+func (db Database) First() (result map[string]any, err error) {
+	prepare, values, err := db.Limit(1).BuildSqlQuery()
+	if err != nil {
+		return result, err
+	}
+
+	err = db.query(&result, prepare, values...)
+	return
+}
+func (db Database) Find(id int) (result map[string]any, err error) {
+	return db.Where("id", id).First()
+}
+func (db Database) Max(column string) (result []map[string]any, err error) {
+	prepare, values, err := db.SelectRaw(fmt.Sprintf("max(%s) as max", util.BackQuotes(column))).BuildSqlQuery()
+	if err != nil {
+		return result, err
+	}
+
+	err = db.query(&result, prepare, values...)
+	return
+}
 func (db Database) Min() (result []map[string]any, err error)   { return }
 func (db Database) Avg() (result []map[string]any, err error)   { return }
 func (db Database) Count() (result []map[string]any, err error) { return }
@@ -32,7 +56,3 @@ func (db Database) DecrementEach() (result []map[string]any, err error)  { retur
 
 func (db Database) Delete() (result []map[string]any, err error)   { return }
 func (db Database) Truncate() (result []map[string]any, err error) { return }
-
-func (db Database) query(sql4prepare string, binds ...any) {
-
-}
