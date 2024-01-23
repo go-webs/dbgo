@@ -180,10 +180,10 @@ db.Table("products").WhereNot(func(query dbgo.Builder){
 
 // JSON Where Clauses
 db.Table("users").Where("preferences->dining->meal", "salad").Get()
-db.Table("users").WhereJsonContains("options->languages", "en").Get()
-db.Table("users").WhereJsonContains("options->languages", []string{"en", "de"}).Get()
-db.Table("users").WhereJsonLength("options->languages", 0).Get()
-db.Table("users").WhereJsonLength("options->languages", ">", 1).Get()
+db.Table("users").WhereJsonContains("optionsArr->languages", "en").Get()
+db.Table("users").WhereJsonContains("optionsArr->languages", []string{"en", "de"}).Get()
+db.Table("users").WhereJsonLength("optionsArr->languages", 0).Get()
+db.Table("users").WhereJsonLength("optionsArr->languages", ">", 1).Get()
 
 // Additional Where Clauses
 db.Table("users").WhereBetween("votes", []int{1, 100}).Get()
@@ -336,7 +336,7 @@ db.Table("users").UpdateOrInsert(
     ["votes" => "2"]
 )
 
-affected := db.Table("users").Where("id", 1).Update(["options->Enabled" => true])
+affected := db.Table("users").Where("id", 1).Update(["optionsArr->Enabled" => true])
 
 db.Table("users").Increment("votes")
 

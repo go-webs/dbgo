@@ -2,6 +2,7 @@ package dbgo
 
 import (
 	"cmp"
+	"database/sql"
 	"gitub.com/go-webs/dbgo/builder"
 	"gitub.com/go-webs/dbgo/iface"
 	"gitub.com/go-webs/dbgo/util"
@@ -11,20 +12,49 @@ import (
 
 type DbGo struct {
 	*Cluster
-	Err error
+	master []*sql.DB
+	slave  []*sql.DB
+	Error  error
 }
 
-func Open(conf *Cluster) *DbGo {
-	if conf == nil { // build sql only
-		return &DbGo{Cluster: &Cluster{Prefix: "test_"}}
+// Open db
+// examples
+//
+//	Open("mysql", "root:root@tcp(localhost:3306)/test?charset=utf8mb4&parseTime=true")
+//	Open(&Cluster{...})
+func Open(conf ...any) *DbGo {
+	var dg = DbGo{}
+	switch len(conf) {
+	case 1:
+		if cluster, ok := conf[0].(*Cluster); ok {
+			if cluster == nil { // build sql only
+				//dg.Cluster = &Cluster{Prefix: "test_"}
+				return &dg
+			}
+			dg.master, dg.slave = cluster.init()
+		}
+	case 2:
+		db, err := sql.Open(conf[0].(string), conf[1].(string))
+		if err != nil {
+			panic(err.Error())
+		}
+		dg.master = append(dg.master, db)
+	default:
+		panic("config must be *dbgo.Cluster or sql.Open() origin params")
 	}
-	//todo
-	return &DbGo{Cluster: conf}
+	return &dg
 }
 
+func (dg *DbGo) getMasterDB() *sql.DB {
+	return dg.master[util.GetRandomInt(len(dg.master))]
+}
+func (dg *DbGo) getSlaveDB() *sql.DB {
+	return dg.slave[util.GetRandomInt(len(dg.slave))]
+}
 func (dg *DbGo) NewDB() *Database {
 	return NewDB(dg)
 }
+
 func Raw[T cmp.Ordered](args ...T) iface.TypeRaw {
 	argsStr := util.Map[T, []T, string](args, func(s T) string {
 		return reflect.ValueOf(s).String()

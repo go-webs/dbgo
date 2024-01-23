@@ -1,8 +1,8 @@
 package builder
 
 import (
-	"fmt"
 	"gitub.com/go-webs/dbgo/iface"
+	"gitub.com/go-webs/dbgo/util"
 	"strings"
 )
 
@@ -44,7 +44,7 @@ func (ss *SelectBuilder) BuildSelect() (fields string, binds []any) {
 			if strings.ContainsAny(field, " ") {
 				tmp = append(tmp, field)
 			} else {
-				tmp = append(tmp, fmt.Sprintf("`%s`", field))
+				tmp = append(tmp, util.BackQuotes(field))
 			}
 		}
 	}

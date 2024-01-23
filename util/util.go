@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 )
@@ -30,9 +31,9 @@ func PtrFloat64(arg float64) *float64 {
 func PtrTime(arg time.Time) *time.Time {
 	return &arg
 }
-func ToSlice(arg interface{}) []interface{} {
+func ToSlice(arg any) []any {
 	ref := reflect.Indirect(reflect.ValueOf(arg))
-	var res []interface{}
+	var res []any
 	switch ref.Kind() {
 	case reflect.Slice:
 		l := ref.Len()
@@ -54,7 +55,7 @@ func SliceContains(haystack []string, needle string) bool {
 	return false
 }
 
-func getRandomInt(num int) int {
+func GetRandomInt(num int) int {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 	return rand.Intn(num)
 }
@@ -68,8 +69,7 @@ func Map[Data any, Datas ~[]Data, Result any](datas Datas, mapper func(Data) Res
 }
 
 func NamedSprintf(format string, a ...any) string {
-	str := regexp.MustCompile(`:\w+`).ReplaceAllString(format, "%s")
-	return strings.TrimSpace(regexp.MustCompile(`\s{2,}`).ReplaceAllString(fmt.Sprintf(str, a...), " "))
+	return strings.TrimSpace(regexp.MustCompile(`\s{2,}`).ReplaceAllString(fmt.Sprintf(regexp.MustCompile(`:\w+`).ReplaceAllString(format, "%s"), a...), " "))
 }
 
 func BackQuotes(arg any) string {
@@ -85,4 +85,20 @@ func BackQuotes(arg any) string {
 		tmp = append(tmp, split[1:]...)
 	}
 	return strings.Join(tmp, " ")
+}
+
+func SortedMapKeys(data any) (cols []string) {
+	// 从 map 中获取所有的键，并转换为切片
+	keys := reflect.ValueOf(data).MapKeys()
+
+	// 对切片进行排序
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i].String() < keys[j].String()
+	})
+
+	// 输出排序后的结果
+	for _, key := range keys {
+		cols = append(cols, key.String())
+	}
+	return
 }

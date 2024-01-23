@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"gitub.com/go-webs/dbgo/iface"
+	"gitub.com/go-webs/dbgo/util"
 	"strings"
 )
 
@@ -113,15 +114,15 @@ func (jc *JoinBuilder) BuildJoin() (joins string, bindValues []any, err error) {
 			var tmp []string
 			for _, v2 := range jc.joinClause {
 				if len(tmp) == 0 { // 第一个不加 and 或者 or 链接
-					tmp = append(tmp, fmt.Sprintf("%s %s %s", v2[1], v2[2], v2[3]))
+					tmp = append(tmp, fmt.Sprintf("%s %s %s", util.BackQuotes(v2[1]), v2[2], util.BackQuotes(v2[3])))
 				} else {
-					tmp = append(tmp, fmt.Sprintf("%s %s %s %s", v2[0], v2[1], v2[2], v2[3]))
+					tmp = append(tmp, fmt.Sprintf("%s %s %s %s", v2[0], util.BackQuotes(v2[1]), v2[2], util.BackQuotes(v2[3])))
 				}
 			}
 			joins = fmt.Sprintf("%s %s %s ON (%s)", joins, v.joinType, tab, strings.Join(tmp, " "))
 		} else {
 			if len(v.argOrFn) == 3 {
-				joins = fmt.Sprintf("%s %s %s ON %s %s %s", joins, v.joinType, tab, v.argOrFn[0], v.argOrFn[1], v.argOrFn[2])
+				joins = fmt.Sprintf("%s %s %s ON %s %s %s", joins, v.joinType, tab, util.BackQuotes(v.argOrFn[0]), v.argOrFn[1], util.BackQuotes(v.argOrFn[2]))
 			} else {
 				err = errors.New("the param's length after first must be 3")
 				return

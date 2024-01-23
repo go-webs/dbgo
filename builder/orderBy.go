@@ -2,6 +2,7 @@ package builder
 
 import (
 	"fmt"
+	"gitub.com/go-webs/dbgo/util"
 	"strings"
 )
 
@@ -17,7 +18,7 @@ func (b *OrderByBuilder) OrderBy(args ...string) *OrderByBuilder {
 	if len(args) == 0 {
 		return b
 	}
-	args[0] = fmt.Sprintf("`%s`", args[0])
+	args[0] = util.BackQuotes(args[0])
 	b.args = append(b.args, strings.Join(args, " "))
 	return b
 }

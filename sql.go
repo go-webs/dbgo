@@ -1,30 +1,33 @@
 package dbgo
 
 import (
+	"errors"
 	"fmt"
+	"gitub.com/go-webs/dbgo/iface"
 	"gitub.com/go-webs/dbgo/util"
 	"reflect"
+	"sort"
 	"strings"
 )
 
-func (db Database) BuildSqlQuery() (sqlSegment string, values []any, err error) {
+func (db Database) BuildSqlQuery() (sql4prepare string, values []any, err error) {
 	var distinct = db.distinct
 	var fields, bindValuesSelect = db.BuildSelect()
 	tables, err := db.TableBuilder.BuildTable()
 	if err != nil {
-		return sqlSegment, values, err
+		return sql4prepare, values, err
 	}
 	joins, bindValuesJoin, err := db.BuildJoin()
 	if err != nil {
-		return sqlSegment, values, err
+		return sql4prepare, values, err
 	}
 	wheres, bindValuesWhere, err := db.BuildWhere()
 	if err != nil {
-		return sqlSegment, values, err
+		return sql4prepare, values, err
 	}
 	groups, havingS, bindValuesGroup := db.BuildGroup()
 	if err != nil {
-		return sqlSegment, values, err
+		return sql4prepare, values, err
 	}
 	orderBys := db.BuildOrderBy()
 	pagination, bindValuesPagination := db.BuildPage()
@@ -42,25 +45,51 @@ func (db Database) BuildSqlQuery() (sqlSegment string, values []any, err error) 
 	//	// 从struct构建where
 	//}
 
-	sqlSegment = util.NamedSprintf("SELECT :distinct :fields FROM :tables :joins :wheres :groups :havings :orderBys :page",
+	sql4prepare = util.NamedSprintf("SELECT :distinct :fields FROM :tables :joins :wheres :groups :havings :orderBys :page",
 		distinct, fields, tables, joins, wheres, groups, havingS, orderBys, pagination)
 	return
 }
-func (db Database) BuildSqlInsert(data any) (sqlSegment string, values []any, err error) {
+func (db Database) BuildSqlExists() (sql4prepare string, values []any, err error) {
+	sql4prepare, values, err = db.BuildSqlQuery()
+	sql4prepare = fmt.Sprintf("SELECT EXISTS(%s) AS exists", sql4prepare)
+	return
+}
+func (db Database) BuildSqlUpsert(data any, keys []string, columns []string) (sql4prepare string, values []any, err error) {
+	var tmp []string
+	for _, v := range columns {
+		tmp = append(tmp, fmt.Sprintf("`%s`=VALUES(`%s`)", v, v))
+	}
+	return db.buildSqlInsert(data, "", fmt.Sprintf("ON DUPLICATE KEY UPDATE %s", strings.Join(tmp, ", ")))
+}
+func (db Database) BuildSqlInsertUsing(columns []string, b iface.IUnion) (sql4prepare string, values []any, err error) {
+	tables := db.BuildTable()
+	fields := util.Map[string, []string, string](columns, func(s string) string {
+		return fmt.Sprintf("`%s`", s)
+	})
+	prepareQuery, values, err := b.BuildSqlQuery()
+	if err != nil {
+		return sql4prepare, values, err
+	}
+
+	sql4prepare = util.NamedSprintf("INSERT INTO :tables (:fields) (:prepareQuery)", tables, strings.Join(fields, ","), prepareQuery)
+	return sql4prepare, values, err
+}
+func (db Database) BuildSqlInsertOrIgnore(data any) (sql4prepare string, values []any, err error) {
+	return db.buildSqlInsert(data, "IGNORE")
+}
+func (db Database) BuildSqlInsert(data any) (sql4prepare string, values []any, err error) {
+	return db.buildSqlInsert(data, "")
+}
+func (db Database) buildSqlInsert(data any, ignoreCase string, onDuplicateKeys ...string) (sql4prepare string, values []any, err error) {
 	rfv := reflect.Indirect(reflect.ValueOf(data))
-	//var fn = func(dataRfv reflect.Value) {
-	//	var valueTmp []any
-	//	valueTmp = append(valueTmp, rfv.MapIndex(key).Interface())
-	//	keys := rfv.MapKeys()
-	//	for _, key := range keys {
-	//		valueTmp = append(valueTmp, rfv.MapIndex(key).Interface())
-	//	}
-	//}
 	var fields []string
 	var valuesPlaceholderArr []string
 	switch rfv.Kind() {
 	case reflect.Map:
 		keys := rfv.MapKeys()
+		sort.Slice(keys, func(i, j int) bool {
+			return keys[i].String() < keys[j].String()
+		})
 		var valuesPlaceholderTmp []string
 		for _, key := range keys {
 			fields = append(fields, util.BackQuotes(key.String()))
@@ -74,6 +103,9 @@ func (db Database) BuildSqlInsert(data any) (sqlSegment string, values []any, er
 		}
 		// 先获取到插入字段
 		keys := rfv.Index(0).MapKeys()
+		sort.Slice(keys, func(i, j int) bool {
+			return keys[i].String() < keys[j].String()
+		})
 		for _, key := range keys {
 			fields = append(fields, util.BackQuotes(key.String()))
 		}
@@ -86,14 +118,141 @@ func (db Database) BuildSqlInsert(data any) (sqlSegment string, values []any, er
 			}
 			valuesPlaceholderArr = append(valuesPlaceholderArr, fmt.Sprintf("(%s)", strings.Join(valuesPlaceholderTmp, ",")))
 		}
+	default:
+		err = errors.New("only map(slice) data supported")
 	}
 	tables := db.BuildTable()
-	sqlSegment = util.NamedSprintf("INSERT INTO :tables (:fields) VALUES :placeholder", tables, strings.Join(fields, ","), strings.Join(valuesPlaceholderArr, " "))
+	var onDuplicateKey string
+	if len(onDuplicateKeys) > 0 {
+		onDuplicateKey = onDuplicateKeys[0]
+	}
+	sql4prepare = util.NamedSprintf("INSERT :ignoreCase INTO :tables (:fields) VALUES :placeholder :onDuplicateKey", ignoreCase, tables, strings.Join(fields, ","), strings.Join(valuesPlaceholderArr, " "), onDuplicateKey)
 	return
 }
-func (db Database) BuildSqlUpdate() (sqlSegment string, values []any, err error) { return }
-func (db Database) BuildSqlDelete() (sqlSegment string, values []any, err error) { return }
+func (db Database) BuildSqlUpdate(data any) (sql4prepare string, values []any, err error) {
+	rfv := reflect.Indirect(reflect.ValueOf(data))
+	var updates []string
+	switch rfv.Kind() {
+	case reflect.Map:
+		keys := rfv.MapKeys()
+		sort.Slice(keys, func(i, j int) bool {
+			return keys[i].String() < keys[j].String()
+		})
+		for _, key := range keys {
+			updates = append(updates, fmt.Sprintf("%s = ?", util.BackQuotes(key.String())))
+			values = append(values, rfv.MapIndex(key).Interface())
+		}
+	default:
+		err = errors.New("only map data supported")
+	}
+	tables := db.BuildTable()
+	wheres, binds, err := db.BuildWhere()
+	if err != nil {
+		return sql4prepare, values, err
+	}
+	values = append(values, binds...)
+	if wheres != "" {
+		wheres = fmt.Sprintf("WHERE %s", wheres)
+	}
+	sql4prepare = util.NamedSprintf("UPDATE :tables SET :updates :wheres", tables, strings.Join(updates, ", "), wheres)
+
+	return
+}
+func (db Database) BuildSqlDelete(id ...int) (sql4prepare string, values []any, err error) {
+	var dbTmp Database
+	if len(id) > 0 {
+		dbTmp = db.Where("id", id[0])
+	} else {
+		dbTmp = db
+	}
+
+	tables := dbTmp.BuildTable()
+	wheres, binds, err := dbTmp.BuildWhere()
+	if err != nil {
+		return sql4prepare, values, err
+	}
+	values = append(values, binds...)
+	if wheres != "" {
+		wheres = fmt.Sprintf("WHERE %s", wheres)
+	}
+	sql4prepare = util.NamedSprintf("DELETE FROM :tables :wheres", tables, wheres)
+	return
+}
 func (db Database) ToSqlOnly() string {
-	sqls, _, _ := db.BuildSqlQuery()
-	return sqls
+	sql4prepare, _, _ := db.BuildSqlQuery()
+	return sql4prepare
+}
+
+// BuildSqlIncrement clause
+// examples
+//
+//	BuildSqlIncrement("age")
+//	BuildSqlIncrement("age", 2)
+//	BuildSqlIncrement("age", 3, map[string]any{"name":"John2", "sex": 1})
+func (db Database) BuildSqlIncrement(column string, args ...any) (sql4prepare string, values []any, err error) {
+	return db.buildSqlIncOrDec("+", column, args...)
+}
+
+func (db Database) BuildSqlIncrementEach(data map[string]int, extra ...any) (sql4prepare string, values []any, err error) {
+	return db.buildSqlIncOrDecEach("+", data, extra...)
+}
+
+func (db Database) BuildSqlDecrement(column string, args ...any) (sql4prepare string, values []any, err error) {
+	return db.buildSqlIncOrDec("-", column, args...)
+}
+
+func (db Database) BuildSqlDecrementEach(data map[string]int, extra ...any) (sql4prepare string, values []any, err error) {
+	return db.buildSqlIncOrDecEach("-", data, extra...)
+}
+
+func (db Database) buildSqlIncOrDec(incDec string, column string, args ...any) (sql4prepare string, values []any, err error) {
+	var data = map[string]int{}
+	switch len(args) {
+	case 0:
+		data[column] = 1
+		return db.buildSqlIncOrDecEach(incDec, data)
+	case 1:
+		data[column] = args[0].(int)
+		return db.buildSqlIncOrDecEach(incDec, data)
+	case 2:
+		data[column] = args[0].(int)
+		return db.buildSqlIncOrDecEach(incDec, data, args[1])
+	}
+
+	return
+}
+
+// buildSqlIncOrDecEach specific
+// @incDec +/-
+func (db Database) buildSqlIncOrDecEach(incDec string, data map[string]int, extra ...any) (sql4prepare string, values []any, err error) {
+	var updates []string
+	for k, v := range data {
+		updates = append(updates, fmt.Sprintf("%s = %s %s %v", util.BackQuotes(k), util.BackQuotes(k), incDec, v))
+	}
+
+	//var updates []string
+	if len(extra) > 0 {
+		rfv := reflect.ValueOf(extra[0])
+		keys := rfv.MapKeys()
+		sort.Slice(keys, func(i, j int) bool {
+			return keys[i].String() < keys[j].String()
+		})
+		for _, key := range keys {
+			updates = append(updates, fmt.Sprintf("%s = ?", util.BackQuotes(key.String())))
+			values = append(values, rfv.MapIndex(key).Interface())
+		}
+	}
+
+	tables := db.BuildTable()
+	wheres, binds, err := db.BuildWhere()
+	if err != nil {
+		return sql4prepare, values, err
+	}
+	values = append(values, binds...)
+	if wheres != "" {
+		wheres = fmt.Sprintf("WHERE %s", wheres)
+	}
+	sql4prepare = util.NamedSprintf("UPDATE :tables SET :incDec :updates :wheres", tables, incDec, strings.Join(updates, ", "), wheres)
+
+	return
 }

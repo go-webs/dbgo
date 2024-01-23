@@ -1,7 +1,9 @@
 package dbgo
 
 import (
-	"cmp"
+	"reflect"
+	"runtime"
+	"strings"
 	"testing"
 	"time"
 )
@@ -23,8 +25,32 @@ func db() *Database {
 	return Open(&Cluster{Prefix: "test_"}).NewDB()
 }
 
-func assertsEqual[T cmp.Ordered](t *testing.T, expect, real T) {
-	if expect != real {
-		t.Errorf("not equal, expect: %v\n but got: %v", expect, real)
+func assertsEqual(t *testing.T, expect, real any) {
+	if reflect.ValueOf(expect).String() != reflect.ValueOf(real).String() {
+		methodName, file, line := getCallerInfo(t)
+		t.Errorf("[%s] Error\n\t Trace - %s:%v\n\tExpect - %+v\n\t   Got - %#v\n------------------------------------------------------", methodName, file, line, expect, real)
 	}
+}
+
+func getCallerInfo(t *testing.T) (string, string, int) {
+	pc := make([]uintptr, 10)
+	n := runtime.Callers(2, pc)
+	frames := runtime.CallersFrames(pc[:n])
+
+	var i int
+	for frame, more := frames.Next(); more; frame, more = frames.Next() {
+		i++
+		if i == 1 {
+			continue
+		}
+		//fmt.Printf("Method: %s\nFile: %s\nLine: %d\n\n", frame.Function, frame.File, frame.Line)
+		lastDotIndex := strings.LastIndex(frame.Function, ".")
+		methodName := frame.Function[lastDotIndex+1:]
+		//t.Logf("[%s] errors on file:line: \n\t\t -> %s:%v\n", methodName, frame.File, frame.Line)
+		if i == 2 {
+			return methodName, frame.File, frame.Line
+		}
+		//break
+	}
+	return "", "", 0
 }

@@ -32,7 +32,7 @@ func (g *GroupBuilder) GroupBy(args ...string) *GroupBuilder {
 
 	g.groups = append(g.groups,
 		util.Map[string, []string, string](args, func(data string) string {
-			return fmt.Sprintf("`%s`", data)
+			return util.BackQuotes(data)
 		})...)
 	return g
 }
