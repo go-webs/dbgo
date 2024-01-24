@@ -187,7 +187,7 @@ func (db Database) BuildSqlDeleteStruct(id ...int) (sql4prepare string, values [
 	return
 }
 
-// BuildSqlIncrement clause
+// BuildSqlIncrementStruct clause
 // examples
 //
 //	BuildSqlIncrement("age")

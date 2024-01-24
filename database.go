@@ -34,8 +34,9 @@ func (db *transaction) Commit() (err error) {
 type Database struct {
 	*DbGo
 	transaction
-	distinct string
-	locking  *bool // Pessimistic Locking
+	distinct  string
+	locking   *bool // Pessimistic Locking
+	lasyCount int
 
 	*builder.TableBuilder
 	*builder.SelectBuilder
@@ -114,15 +115,15 @@ func (db Database) query(obj any, sql4prepare string, binds ...any) (err error) 
 	switch rfv.Kind() {
 	case reflect.Slice:
 		switch reflect.Indirect(reflect.New(rfv.Type().Elem())).Kind() {
-		//case reflect.Struct:
-		//	return db.scanStruct(rfv, prepare, binds...)
+		case reflect.Struct:
+			return db.scanStruct(rfv, prepare, binds...)
 		case reflect.Map:
 			return db.scanMap(rfv, prepare, binds...)
 		default:
 			return errors.New("unsorted obj")
 		}
-	//case reflect.Struct:
-	//	return db.scanStruct(rfv, prepare, args...)
+	case reflect.Struct:
+		return db.scanStruct(rfv, prepare, binds...)
 	case reflect.Map:
 		return db.scanMap(rfv, prepare, binds...)
 	default:
@@ -182,40 +183,45 @@ func (db Database) scanMap(rfv reflect.Value, prepare *sql.Stmt, args ...any) er
 	return nil
 }
 
-//func (db Database) scanStruct(rfv reflect.Value, prepare *sql.Stmt, args ...any) error {
-//	dbFields, structFields, structRft, err := db.getFieldsQuery(rfv)
-//	if err != nil {
-//		return err
-//	}
-//
-//	rows, err := prepare.Query(args...)
-//	if err != nil {
-//		return err
-//	}
-//	defer rows.Close()
-//
-//	for rows.Next() {
-//		fields := make([]any, len(dbFields))
-//		entry := reflect.New(structRft).Elem()
-//		for i, v := range structFields {
-//			field := entry.FieldByName(v)
-//			fields[i] = field.Addr().Interface()
-//		}
-//		if err := rows.Scan(fields...); err != nil {
-//			return err
-//		}
-//
-//		if rfv.Kind() == reflect.Slice {
-//			rfv.Set(reflect.Append(rfv, entry))
-//		} else {
-//			rfv.Set(entry)
-//		}
-//	}
-//
-//	return nil
-//}
+func (db Database) scanStruct(rfv reflect.Value, prepare *sql.Stmt, args ...any) error {
+	//dbFields, structFields, structRft, err := db.getFieldsQuery(rfv)
+	//err2 := db.BuildFieldsQuery(rfv.Type())
+	//if err != nil {
+	//	return err
+	//}
 
-func (db Database) execute(isReturnLastInsertId bool, sql4prepare string, binds ...any) (affectedRowsOrLastInsertId int64, err error) {
+	rows, err := prepare.Query(args...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		structRft := rfv.Type()
+		if rfv.Kind() == reflect.Slice {
+			structRft = rfv.Type().Elem()
+		}
+		fields := make([]any, len(db.FieldsTag))
+		entry := reflect.Indirect(reflect.New(structRft))
+		for i, v := range db.FieldsStruct {
+			//field := entry.FieldByName(v)
+			fields[i] = entry.FieldByName(v).Addr().Interface()
+		}
+		if err = rows.Scan(fields...); err != nil {
+			return err
+		}
+
+		if rfv.Kind() == reflect.Slice {
+			rfv.Set(reflect.Append(rfv, entry))
+		} else {
+			rfv.Set(entry)
+		}
+	}
+
+	return nil
+}
+
+func (db Database) execute(returnLastInsertId bool, sql4prepare string, binds ...any) (affectedRowsOrLastInsertId int64, err error) {
 	var prepare *sql.Stmt
 	if db.tx != nil {
 		prepare, err = db.tx.Prepare(sql4prepare)
@@ -234,7 +240,7 @@ func (db Database) execute(isReturnLastInsertId bool, sql4prepare string, binds 
 	if err != nil {
 		return
 	}
-	if isReturnLastInsertId {
+	if returnLastInsertId {
 		affectedRowsOrLastInsertId, err = res.LastInsertId()
 	} else {
 		affectedRowsOrLastInsertId, err = res.RowsAffected()
