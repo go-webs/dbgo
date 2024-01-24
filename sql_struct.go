@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func (db Database) BuildSqlQuery() (sql4prepare string, values []any, err error) {
+func (db Database) BuildSqlQueryStruct() (sql4prepare string, values []any, err error) {
 	var distinct = db.distinct
 	var fields, bindValuesSelect = db.BuildSelect()
 	tables, err := db.TableBuilder.BuildTable()
@@ -57,19 +57,19 @@ func (db Database) BuildSqlQuery() (sql4prepare string, values []any, err error)
 		distinct, fields, tables, joins, wheres, groups, havingS, orderBys, pagination, locks)
 	return
 }
-func (db Database) BuildSqlExists() (sql4prepare string, values []any, err error) {
+func (db Database) BuildSqlExistsStruct() (sql4prepare string, values []any, err error) {
 	sql4prepare, values, err = db.BuildSqlQuery()
 	sql4prepare = fmt.Sprintf("SELECT EXISTS(%s) AS exists", sql4prepare)
 	return
 }
-func (db Database) BuildSqlUpsert(data any, keys []string, columns []string) (sql4prepare string, values []any, err error) {
+func (db Database) BuildSqlUpsertStruct(data any, keys []string, columns []string) (sql4prepare string, values []any, err error) {
 	var tmp []string
 	for _, v := range columns {
 		tmp = append(tmp, fmt.Sprintf("`%s`=VALUES(`%s`)", v, v))
 	}
-	return db.buildSqlInsert(data, "", fmt.Sprintf("ON DUPLICATE KEY UPDATE %s", strings.Join(tmp, ", ")))
+	return db.buildSqlInsertStruct(data, "", fmt.Sprintf("ON DUPLICATE KEY UPDATE %s", strings.Join(tmp, ", ")))
 }
-func (db Database) BuildSqlInsertUsing(columns []string, b iface.IUnion) (sql4prepare string, values []any, err error) {
+func (db Database) BuildSqlInsertUsingStruct(columns []string, b iface.IUnion) (sql4prepare string, values []any, err error) {
 	tables := db.BuildTable()
 	fields := util.Map[string, []string, string](columns, func(s string) string {
 		return fmt.Sprintf("`%s`", s)
@@ -82,18 +82,18 @@ func (db Database) BuildSqlInsertUsing(columns []string, b iface.IUnion) (sql4pr
 	sql4prepare = util.NamedSprintf("INSERT INTO :tables (:fields) (:prepareQuery)", tables, strings.Join(fields, ","), prepareQuery)
 	return sql4prepare, values, err
 }
-func (db Database) BuildSqlInsertOrIgnore(data any) (sql4prepare string, values []any, err error) {
-	return db.buildSqlInsert(data, "IGNORE")
+func (db Database) BuildSqlInsertOrIgnoreStruct(data any) (sql4prepare string, values []any, err error) {
+	return db.buildSqlInsertStruct(data, "IGNORE")
 }
-func (db Database) BuildSqlInsert(data any) (sql4prepare string, values []any, err error) {
-	return db.buildSqlInsert(data, "")
+func (db Database) BuildSqlInsertStruct(data any) (sql4prepare string, values []any, err error) {
+	return db.buildSqlInsertStruct(data, "")
 }
-func (db Database) buildSqlInsert(data any, ignoreCase string, onDuplicateKeys ...string) (sql4prepare string, values []any, err error) {
+func (db Database) buildSqlInsertStruct(data any, ignoreCase string, onDuplicateKeys ...string) (sql4prepare string, values []any, err error) {
 	rfv := reflect.Indirect(reflect.ValueOf(data))
 	var fields []string
 	var valuesPlaceholderArr []string
 	switch rfv.Kind() {
-	case reflect.Map:
+	case reflect.Struct:
 		keys := rfv.MapKeys()
 		sort.Slice(keys, func(i, j int) bool {
 			return keys[i].String() < keys[j].String()
@@ -134,10 +134,10 @@ func (db Database) buildSqlInsert(data any, ignoreCase string, onDuplicateKeys .
 	if len(onDuplicateKeys) > 0 {
 		onDuplicateKey = onDuplicateKeys[0]
 	}
-	sql4prepare = util.NamedSprintf("INSERT :ignoreCase INTO :tables (:fields) VALUES :placeholder :onDuplicateKey", ignoreCase, tables, strings.Join(fields, ","), strings.Join(valuesPlaceholderArr, ","), onDuplicateKey)
+	sql4prepare = util.NamedSprintf("INSERT :ignoreCase INTO :tables (:fields) VALUES :placeholder :onDuplicateKey", ignoreCase, tables, strings.Join(fields, ","), strings.Join(valuesPlaceholderArr, " "), onDuplicateKey)
 	return
 }
-func (db Database) BuildSqlUpdate(data any) (sql4prepare string, values []any, err error) {
+func (db Database) BuildSqlUpdateStruct(data any) (sql4prepare string, values []any, err error) {
 	rfv := reflect.Indirect(reflect.ValueOf(data))
 	var updates []string
 	switch rfv.Kind() {
@@ -152,7 +152,6 @@ func (db Database) BuildSqlUpdate(data any) (sql4prepare string, values []any, e
 		}
 	default:
 		err = errors.New("only map data supported")
-		return
 	}
 	tables := db.BuildTable()
 	wheres, binds, err := db.BuildWhere()
@@ -167,7 +166,7 @@ func (db Database) BuildSqlUpdate(data any) (sql4prepare string, values []any, e
 
 	return
 }
-func (db Database) BuildSqlDelete(id ...int) (sql4prepare string, values []any, err error) {
+func (db Database) BuildSqlDeleteStruct(id ...int) (sql4prepare string, values []any, err error) {
 	var dbTmp Database
 	if len(id) > 0 {
 		dbTmp = db.Where("id", id[0])
@@ -194,23 +193,23 @@ func (db Database) BuildSqlDelete(id ...int) (sql4prepare string, values []any, 
 //	BuildSqlIncrement("age")
 //	BuildSqlIncrement("age", 2)
 //	BuildSqlIncrement("age", 3, map[string]any{"name":"John2", "sex": 1})
-func (db Database) BuildSqlIncrement(column string, args ...any) (sql4prepare string, values []any, err error) {
+func (db Database) BuildSqlIncrementStruct(column string, args ...any) (sql4prepare string, values []any, err error) {
 	return db.buildSqlIncOrDec("+", column, args...)
 }
 
-func (db Database) BuildSqlIncrementEach(data map[string]int, extra ...any) (sql4prepare string, values []any, err error) {
+func (db Database) BuildSqlIncrementEachStruct(data map[string]int, extra ...any) (sql4prepare string, values []any, err error) {
 	return db.buildSqlIncOrDecEach("+", data, extra...)
 }
 
-func (db Database) BuildSqlDecrement(column string, args ...any) (sql4prepare string, values []any, err error) {
+func (db Database) BuildSqlDecrementStruct(column string, args ...any) (sql4prepare string, values []any, err error) {
 	return db.buildSqlIncOrDec("-", column, args...)
 }
 
-func (db Database) BuildSqlDecrementEach(data map[string]int, extra ...any) (sql4prepare string, values []any, err error) {
+func (db Database) BuildSqlDecrementEachStruct(data map[string]int, extra ...any) (sql4prepare string, values []any, err error) {
 	return db.buildSqlIncOrDecEach("-", data, extra...)
 }
 
-func (db Database) buildSqlIncOrDec(incDec string, column string, args ...any) (sql4prepare string, values []any, err error) {
+func (db Database) buildSqlIncOrDecStruct(incDec string, column string, args ...any) (sql4prepare string, values []any, err error) {
 	var data = map[string]int{}
 	switch len(args) {
 	case 0:
@@ -229,7 +228,7 @@ func (db Database) buildSqlIncOrDec(incDec string, column string, args ...any) (
 
 // buildSqlIncOrDecEach specific
 // @incDec +/-
-func (db Database) buildSqlIncOrDecEach(incDec string, data map[string]int, extra ...any) (sql4prepare string, values []any, err error) {
+func (db Database) buildSqlIncOrDecEachStruct(incDec string, data map[string]int, extra ...any) (sql4prepare string, values []any, err error) {
 	var updates []string
 	for k, v := range data {
 		updates = append(updates, fmt.Sprintf("%s = %s %s %v", util.BackQuotes(k), util.BackQuotes(k), incDec, v))
@@ -262,7 +261,7 @@ func (db Database) buildSqlIncOrDecEach(incDec string, data map[string]int, extr
 	return
 }
 
-func (db Database) ToSqlOnly() string {
-	sql4prepare, _, _ := db.BuildSqlQuery()
+func (db Database) ToSqlOnlyStruct() string {
+	sql4prepare, _, _ := db.BuildSqlQueryStruct()
 	return sql4prepare
 }

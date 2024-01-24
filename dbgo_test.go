@@ -1,6 +1,7 @@
 package dbgo
 
 import (
+	_ "github.com/go-sql-driver/mysql"
 	"reflect"
 	"runtime"
 	"strings"
@@ -18,17 +19,31 @@ type Users struct {
 	Balance   float64   `db:"balance"`
 	CreatedAt time.Time `db:"created_at"`
 
-	TableName string `db:"test_users"`
+	TableName string `db:"users"`
 }
 
 func db() *Database {
-	return Open(&Cluster{Prefix: "test_"}).NewDB()
+	var dbg = Open(&Cluster{Prefix: "test_"})
+	dbg.EnableQueryLog(true)
+	return dbg.NewDB()
+}
+func db2() *Database {
+	var dbg = Open("mysql", "root:Qx233233!@tcp(rm-bp1149oa09n39n236jo.mysql.rds.aliyuncs.com:3306)/game?charset=utf8mb4&parseTime=true")
+	dbg.EnableQueryLog(true)
+	return dbg.NewDB()
 }
 
 func assertsEqual(t *testing.T, expect, real any) {
 	if reflect.ValueOf(expect).String() != reflect.ValueOf(real).String() {
 		methodName, file, line := getCallerInfo(t)
 		t.Errorf("[%s] Error\n\t Trace - %s:%v\n\tExpect - %+v\n\t   Got - %#v\n------------------------------------------------------", methodName, file, line, expect, real)
+	}
+}
+
+func assertsError(t *testing.T, err error) {
+	if err != nil {
+		methodName, file, line := getCallerInfo(t)
+		t.Errorf("[%s] Error\n\t Trace - %s:%v\n\t%s\n------------------------------------------------------", methodName, file, line, err.Error())
 	}
 }
 

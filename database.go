@@ -33,7 +33,7 @@ func (db *transaction) Commit() (err error) {
 
 type Database struct {
 	*DbGo
-	*transaction
+	transaction
 	distinct string
 	locking  *bool // Pessimistic Locking
 
@@ -44,6 +44,7 @@ type Database struct {
 	*builder.GroupBuilder
 	*builder.OrderByBuilder
 	*builder.PageBuilder
+	*builder.BindBuilder
 }
 
 func newDatabase(dg *DbGo) *Database {
@@ -56,6 +57,7 @@ func newDatabase(dg *DbGo) *Database {
 		GroupBuilder:   builder.NewGroupBuilder(),
 		OrderByBuilder: builder.NewOrderByBuilder(),
 		PageBuilder:    builder.NewPageBuilder(),
+		BindBuilder:    builder.NewBindBuilder(),
 	}
 }
 
@@ -212,3 +214,30 @@ func (db Database) scanMap(rfv reflect.Value, prepare *sql.Stmt, args ...any) er
 //
 //	return nil
 //}
+
+func (db Database) execute(isReturnLastInsertId bool, sql4prepare string, binds ...any) (affectedRowsOrLastInsertId int64, err error) {
+	var prepare *sql.Stmt
+	if db.tx != nil {
+		prepare, err = db.tx.Prepare(sql4prepare)
+	} else {
+		prepare, err = db.MasterDB().Prepare(sql4prepare)
+	}
+	if err != nil {
+		return
+	}
+
+	defer prepare.Close()
+	db.recordSqlLog(sql4prepare, binds...)
+
+	var res sql.Result
+	res, err = prepare.Exec(binds...)
+	if err != nil {
+		return
+	}
+	if isReturnLastInsertId {
+		affectedRowsOrLastInsertId, err = res.LastInsertId()
+	} else {
+		affectedRowsOrLastInsertId, err = res.RowsAffected()
+	}
+	return
+}

@@ -3,6 +3,7 @@ package builder
 import (
 	"errors"
 	"fmt"
+	"gitub.com/go-webs/dbgo/util"
 	"reflect"
 	"strings"
 )
@@ -59,18 +60,9 @@ func (ts *TableBuilder) buildTableName(rft reflect.Type) (tab string) {
 		}
 	}
 	if tab == "" {
-		tab = fmt.Sprintf("`%s%s`", ts.prefix, rft.Name())
+		tab = fmt.Sprintf("`%s%s`", ts.prefix, strings.ToLower(rft.Name()))
 	} else {
-		tab = fmt.Sprintf("`%s`", tab)
+		tab = util.BackQuotes(tab)
 	}
-	return
-}
-func (ts *TableBuilder) BuildInsert() (sqlSegment string, bindValues []any, err error) {
-	return
-}
-func (ts *TableBuilder) BuildUpdate() (sqlSegment string, bindValues []any, err error) {
-	return
-}
-func (ts *TableBuilder) BuildDelete() (sqlSegment string, bindValues []any, err error) {
 	return
 }
