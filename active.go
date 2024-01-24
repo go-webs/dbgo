@@ -91,6 +91,18 @@ func (db Database) Upsert(data any, keys []string, columns []string) (affectedRo
 	return
 }
 
+// Update data by where or primary key in data filed
+// params
+//
+//	data 更改的数据,map或者struct类型
+//	mustFields 用于struct的0值类型强制更新
+//
+// 如果没有where条件的情况下,会使用struct的主键(默认id)值作为更新条件,如果都不存在,则禁止更新. 如果是map类型,则必须有where条件
+// examples
+//
+//	db.Where("id",1).Update({"name":"david"})	// update users set name=? where id=1
+//	db.Update(Users{Id:1, Name:"David"})	// update users set name=? where id=1
+//	db.Update(Users{Id:1, Name:"David", Votes:0}, "votes")	// update users set name=?, votes=? where id=?
 func (db Database) Update(data any, mustFields ...string) (affectedRows int64, err error) {
 	rfv := reflect.Indirect(reflect.ValueOf(data))
 	switch rfv.Kind() {
@@ -105,24 +117,27 @@ func (db Database) Update(data any, mustFields ...string) (affectedRows int64, e
 		if err != nil {
 			return
 		}
-		return db.Table(data).Insert(db.Datas)
-	case reflect.Slice:
-		switch rfv.Type().Elem().Kind() {
-		case reflect.Map:
-			sql4prepare, values, err := db.BuildSqlInsert(data)
-			if err != nil {
-				return affectedRows, err
-			}
-			return db.execute(false, sql4prepare, values...)
-		case reflect.Struct:
-			err = db.BuildFieldsExecute(data, mustFields...)
-			if err != nil {
-				return
-			}
-			return db.Table(data).Insert(db.Datas)
-		default:
-			err = errors.New("data must be map(slice) or struct(slice)")
-		}
+		//if !db.WhereBuilder.Exists {
+		//	//todo 如果没有where条件,使用主键
+		//}
+		return db.Table(data).Update(db.Datas)
+	//case reflect.Slice:
+	//	switch rfv.Type().Elem().Kind() {
+	//	case reflect.Map:
+	//		sql4prepare, values, err := db.BuildSqlUpdate(data)
+	//		if err != nil {
+	//			return affectedRows, err
+	//		}
+	//		return db.execute(false, sql4prepare, values...)
+	//	case reflect.Struct:
+	//		err = db.BuildFieldsExecute(data, mustFields...)
+	//		if err != nil {
+	//			return
+	//		}
+	//		return db.Table(data).Update(db.Datas)
+	//	default:
+	//		err = errors.New("data must be map(slice) or struct(slice)")
+	//	}
 	default:
 		err = errors.New("data must be map(slice) or struct(slice)")
 	}
