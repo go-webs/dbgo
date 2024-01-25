@@ -55,6 +55,9 @@ func (dg *DbGo) MasterDB() *sql.DB {
 	return dg.master[util.GetRandomInt(len(dg.master))]
 }
 func (dg *DbGo) SlaveDB() *sql.DB {
+	if len(dg.slave) == 0 {
+		return dg.MasterDB()
+	}
 	return dg.slave[util.GetRandomInt(len(dg.slave))]
 }
 func (dg *DbGo) NewDB() *Database {

@@ -3,29 +3,14 @@ package dbgo
 import "fmt"
 
 // Where : query or execute where condition, the relation is and
-func (db Database) Where(args ...interface{}) Database {
-	if len(args) == 0 {
-		return db
-	}
-	// 如果只传入一个参数, 则可能是字符串、一维对象、二维数组
-	// 重新组合为长度为3的数组, 第一项为关系(and/or), 第二项为具体传入的参数 []interface{}
-	//w := []interface{}{"AND", args}
-	//db.where = append(db.where, w)
-	db.WhereBuilder.Where(args...)
+func (db Database) Where(column any, args ...any) Database {
+	db.WhereBuilderNew.Where(column, args...)
 	return db
 }
 
 // OrWhere : query or execute where condition, the relation is or
-func (db Database) OrWhere(args ...interface{}) Database {
-	if len(args) == 0 {
-		return db
-	}
-	// 如果只传入一个参数, 则可能是字符串、一维对象、二维数组
-	// 重新组合为长度为3的数组, 第一项为关系(and/or), 第二项为具体传入的参数 []interface{}
-	//w := []interface{}{"OR", args}
-	//db.where = append(db.where, w)
-	db.WhereBuilder.OrWhere(args...)
-
+func (db Database) OrWhere(column any, args ...any) Database {
+	db.WhereBuilderNew.OrWhere(column, args...)
 	return db
 }
 
@@ -35,13 +20,13 @@ func (db Database) OrWhere(args ...interface{}) Database {
 //	arg: expressions
 //	binds: bind values
 func (db Database) WhereRaw(arg string, binds ...any) Database {
-	db.WhereBuilder.WhereRaw(arg, binds)
+	db.WhereBuilderNew.WhereRaw(arg, binds)
 	return db
 }
 
 // OrWhereRaw fields with binds
 func (db Database) OrWhereRaw(arg string, binds ...any) Database {
-	db.WhereBuilder.OrWhereRaw(arg, binds)
+	db.WhereBuilderNew.OrWhereRaw(arg, binds)
 	return db
 }
 
@@ -106,12 +91,12 @@ func (db Database) OrWhereNotIn(needle string, hystack any) Database {
 }
 
 // WhereBetween ...
-func (db Database) WhereBetween(needle string, hystack []interface{}) Database {
+func (db Database) WhereBetween(needle string, hystack any) Database {
 	return db.Where(needle, "BETWEEN", hystack)
 }
 
 // OrWhereBetween ...
-func (db Database) OrWhereBetween(needle string, hystack []interface{}) Database {
+func (db Database) OrWhereBetween(needle string, hystack any) Database {
 	return db.OrWhere(needle, "BETWEEN", hystack)
 }
 

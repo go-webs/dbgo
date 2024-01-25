@@ -47,7 +47,7 @@ func (b *BindBuilder) BuildFieldsQuery(rft reflect.Type) (err error) {
 					b.PrimaryKey = tagSplit[1]
 				}
 				tag = tagSplit[0]
-				if tag == TAGIGNORE {
+				if tag == TAGIGNORE || typeField.Name == "TableName" {
 					continue
 				}
 			}

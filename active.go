@@ -7,9 +7,10 @@ import (
 	"gitub.com/go-webs/dbgo/util"
 	"math"
 	"reflect"
+	"slices"
 )
 
-func (db Database) To(binds any) (err error) {
+func (db Database) To(binds any, mustFields4where ...string) (err error) {
 	rfv := reflect.Indirect(reflect.ValueOf(binds))
 	var dbTmp = db.Table(binds)
 	switch rfv.Kind() {
@@ -20,12 +21,26 @@ func (db Database) To(binds any) (err error) {
 			return
 		}
 		for i := 0; i < len(dbTmp.Bindery.FieldsStruct); i++ {
-			dbTmp = dbTmp.Select(dbTmp.Bindery.FieldsTag[i]).Where(dbTmp.Bindery.FieldsStruct[i], rfv.FieldByName(dbTmp.Bindery.FieldsStruct[i]))
+			dbTmp = dbTmp.Select(dbTmp.Bindery.FieldsTag[i])
+			if len(mustFields4where) > 0 && slices.Contains(mustFields4where, dbTmp.Bindery.FieldsTag[i]) ||
+				rfv.FieldByName(dbTmp.Bindery.FieldsStruct[i]).Kind() == reflect.Ptr && !rfv.FieldByName(dbTmp.Bindery.FieldsStruct[i]).IsNil() ||
+				!rfv.FieldByName(dbTmp.Bindery.FieldsStruct[i]).IsZero() {
+				dbTmp = dbTmp.Where(dbTmp.Bindery.FieldsTag[i], rfv.FieldByName(dbTmp.Bindery.FieldsStruct[i]).Interface())
+			}
 		}
+		dbTmp = dbTmp.Limit(1)
 	case reflect.Slice:
 		if rfv.Type().Elem().Kind() != reflect.Struct {
 			err = errors.New("binds must be struct(slice)")
 			return
+		}
+		rft := rfv.Type()
+		err = dbTmp.BuildFieldsQuery(rft.Elem())
+		if err != nil {
+			return
+		}
+		for _, v := range dbTmp.Bindery.FieldsTag {
+			dbTmp = dbTmp.Select(v)
 		}
 	default:
 		err = errors.New("binds must be struct(slice)")
@@ -111,7 +126,7 @@ func (db Database) Pluck(field string, fieldKey ...string) (result any, err erro
 	if len(fieldKey) > 0 {
 		get, err := db.Select(field, fieldKey[0]).Get()
 		if err != nil {
-			return
+			return result, err
 		}
 		var tmp = make(map[any]any)
 		for _, v := range get {
@@ -121,7 +136,7 @@ func (db Database) Pluck(field string, fieldKey ...string) (result any, err erro
 	} else {
 		get, err := db.Select(field, fieldKey[0]).Get()
 		if err != nil {
-			return
+			return result, err
 		}
 		var tmp []any
 		for _, v := range get {
@@ -300,7 +315,7 @@ func (db Database) Update(data any, mustFields ...string) (affectedRows int64, e
 		if err != nil {
 			return
 		}
-		//if !db.WhereBuilder.Exists {
+		//if !db.WhereBuilderNew.Exists {
 		//	//todo 如果没有where条件,使用主键
 		//}
 		if db.Bindery.PrimaryKey != "" && db.Bindery.PrimaryKeyValue != nil {

@@ -29,13 +29,13 @@ package dbgo
 ////	arg: expressions
 ////	binds: bind values
 //func (db Database) WhereRaw(arg string, binds ...any) Database {
-//	db.WhereBuilder.WhereRaw(arg, binds)
+//	db.WhereBuilderNew.WhereRaw(arg, binds)
 //	return db
 //}
 //
 //// OrWhereRaw fields with binds
 //func (db Database) OrWhereRaw(arg string, binds ...any) Database {
-//	db.WhereBuilder.OrWhereRaw(arg, binds)
+//	db.WhereBuilderNew.OrWhereRaw(arg, binds)
 //	return db
 //}
 

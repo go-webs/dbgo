@@ -1,25 +1,22 @@
 package dbgo
 
 import (
+	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 	"reflect"
 	"runtime"
 	"strings"
 	"testing"
-	"time"
 )
 
 type Users struct {
-	Id        int       `db:"id,primaryKey"`
-	Name      string    `db:"name"`
-	Email     string    `db:"email"`
-	Title     string    `db:"title"`
-	Active    bool      `db:"active"`
-	Votes     int       `db:"votes"`
-	Balance   float64   `db:"balance"`
-	CreatedAt time.Time `db:"created_at"`
+	Id        int64         `db:"id,primaryKey" json:"id,omitempty"`
+	Name      string        `db:"name" json:"name,omitempty"`
+	Email     string        `db:"email" json:"email,omitempty"`
+	Votes     sql.NullInt64 `db:"votes" json:"votes,omitempty"`
+	CreatedAt sql.NullTime  `db:"created_at" json:"created_at,omitempty"`
 
-	TableName string `db:"users"`
+	TableName string `db:"users" json:"-"`
 }
 
 func db() *Database {

@@ -21,17 +21,17 @@ type whereRawStruct struct {
 	relation    string
 	expressions rawStruct
 }
-type WhereBuilder struct {
+type WhereBuilder233 struct {
 	wheres          []whereStruct
 	wheresRaw       []whereRawStruct
 	whereBindValues []any
 }
 
-func NewWhereBuilder() *WhereBuilder {
-	return &WhereBuilder{}
+func NewWhereBuilder233() *WhereBuilder233 {
+	return &WhereBuilder233{}
 }
 
-func (w *WhereBuilder) Where(args ...any) iface.WhereClause {
+func (w *WhereBuilder233) Where(args ...any) iface.WhereClause {
 	w.wheres = append(w.wheres, whereStruct{
 		relation:    "AND",
 		expressions: args,
@@ -39,7 +39,7 @@ func (w *WhereBuilder) Where(args ...any) iface.WhereClause {
 	return w
 }
 
-func (w *WhereBuilder) OrWhere(args ...any) iface.WhereClause {
+func (w *WhereBuilder233) OrWhere(args ...any) iface.WhereClause {
 	w.wheres = append(w.wheres, whereStruct{
 		relation:    "OR",
 		expressions: args,
@@ -47,7 +47,7 @@ func (w *WhereBuilder) OrWhere(args ...any) iface.WhereClause {
 	return w
 }
 
-func (w *WhereBuilder) WhereRaw(arg string, binds ...any) iface.WhereClause {
+func (w *WhereBuilder233) WhereRaw(arg string, binds ...any) iface.WhereClause {
 	w.wheresRaw = append(w.wheresRaw, whereRawStruct{
 		relation: "AND",
 		expressions: rawStruct{
@@ -58,7 +58,7 @@ func (w *WhereBuilder) WhereRaw(arg string, binds ...any) iface.WhereClause {
 	return w
 }
 
-func (w *WhereBuilder) OrWhereRaw(arg string, binds ...any) iface.WhereClause {
+func (w *WhereBuilder233) OrWhereRaw(arg string, binds ...any) iface.WhereClause {
 	w.wheresRaw = append(w.wheresRaw, whereRawStruct{
 		relation: "OR",
 		expressions: rawStruct{
@@ -70,7 +70,7 @@ func (w *WhereBuilder) OrWhereRaw(arg string, binds ...any) iface.WhereClause {
 }
 
 // parseWhere : parse where condition
-func (w *WhereBuilder) parseWhere() (string, error) {
+func (w *WhereBuilder233) parseWhere() (string, error) {
 	// 取出所有where
 	wheres := w.wheres
 	// where解析后存放每一项的容器
@@ -180,7 +180,7 @@ func (w *WhereBuilder) parseWhere() (string, error) {
  * example: {"id",">",1}, {"age", 18}
  */
 // parseParams : 将where条件中的参数转换为where条件字符串
-func (w *WhereBuilder) parseParams(args []any) (s string, err error) {
+func (w *WhereBuilder233) parseParams(args []any) (s string, err error) {
 	paramsLength := len(args)
 	argsReal := args
 
@@ -256,7 +256,7 @@ func (w *WhereBuilder) parseParams(args []any) (s string, err error) {
 	return strings.Join(paramsToArr, " "), nil
 }
 
-func (w *WhereBuilder) BuildWhereOnly() (where string) {
+func (w *WhereBuilder233) BuildWhereOnly() (where string) {
 	// 存储原values
 	var valuesClone = slices.Clone(w.whereBindValues)
 
@@ -266,7 +266,7 @@ func (w *WhereBuilder) BuildWhereOnly() (where string) {
 	w.whereBindValues = slices.Clone(valuesClone)
 	return
 }
-func (w *WhereBuilder) BuildWhere() (where string, values []interface{}, err error) {
+func (w *WhereBuilder233) BuildWhere() (where string, values []interface{}, err error) {
 	where, err = w.parseWhere()
 	if err != nil {
 		return
@@ -278,7 +278,7 @@ func (w *WhereBuilder) BuildWhere() (where string, values []interface{}, err err
 }
 
 // AddFieldQuotes ...
-func (w *WhereBuilder) AddFieldQuotes(field string) string {
+func (w *WhereBuilder233) AddFieldQuotes(field string) string {
 	reg := regexp.MustCompile(`^\w+$`)
 	if reg.MatchString(field) {
 		return fmt.Sprintf("`%s`", field)
@@ -287,16 +287,16 @@ func (w *WhereBuilder) AddFieldQuotes(field string) string {
 }
 
 // GetOperator ...
-func (w *WhereBuilder) GetOperator() []string {
+func (w *WhereBuilder233) GetOperator() []string {
 	return operator
 }
 
 // GetPlaceholder ...
-func (w *WhereBuilder) GetPlaceholder() string {
+func (w *WhereBuilder233) GetPlaceholder() string {
 	return "?"
 }
 
 // SetBindValues ...
-func (w *WhereBuilder) SetBindValues(args ...any) {
+func (w *WhereBuilder233) SetBindValues(args ...any) {
 	w.whereBindValues = append(w.whereBindValues, args...)
 }

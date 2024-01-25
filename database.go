@@ -41,7 +41,7 @@ type Database struct {
 	*builder.TableBuilder
 	*builder.SelectBuilder
 	*builder.JoinBuilder
-	*builder.WhereBuilder
+	*builder.WhereBuilderNew
 	*builder.GroupBuilder
 	*builder.OrderByBuilder
 	*builder.PageBuilder
@@ -50,15 +50,15 @@ type Database struct {
 
 func newDatabase(dg *DbGo) *Database {
 	return &Database{
-		DbGo:           dg,
-		TableBuilder:   builder.NewTableBuilder(dg.Cluster.Prefix),
-		SelectBuilder:  builder.NewSelectBuilder(),
-		JoinBuilder:    builder.NewJoinBuilder(dg.Cluster.Prefix),
-		WhereBuilder:   builder.NewWhereBuilder(),
-		GroupBuilder:   builder.NewGroupBuilder(),
-		OrderByBuilder: builder.NewOrderByBuilder(),
-		PageBuilder:    builder.NewPageBuilder(),
-		BindBuilder:    builder.NewBindBuilder(),
+		DbGo:            dg,
+		TableBuilder:    builder.NewTableBuilder(dg.Cluster.Prefix),
+		SelectBuilder:   builder.NewSelectBuilder(),
+		JoinBuilder:     builder.NewJoinBuilder(dg.Cluster.Prefix),
+		WhereBuilderNew: builder.NewWhereBuilderNew(),
+		GroupBuilder:    builder.NewGroupBuilder(),
+		OrderByBuilder:  builder.NewOrderByBuilder(),
+		PageBuilder:     builder.NewPageBuilder(),
+		BindBuilder:     builder.NewBindBuilder(),
 	}
 }
 
@@ -202,10 +202,12 @@ func (db Database) scanStruct(rfv reflect.Value, prepare *sql.Stmt, args ...any)
 			structRft = rfv.Type().Elem()
 		}
 		fields := make([]any, len(db.FieldsTag))
+		//valPointers := make([]any, len(db.FieldsTag))
 		entry := reflect.Indirect(reflect.New(structRft))
 		for i, v := range db.FieldsStruct {
 			//field := entry.FieldByName(v)
 			fields[i] = entry.FieldByName(v).Addr().Interface()
+			//fields[i] = &valPointers
 		}
 		if err = rows.Scan(fields...); err != nil {
 			return err

@@ -57,9 +57,10 @@ func SliceContains(haystack []string, needle string) bool {
 	}
 	return false
 }
-
-func GetRandomInt(num int) int {
+func init() {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
+}
+func GetRandomInt(num int) int {
 	return rand.Intn(num)
 }
 
