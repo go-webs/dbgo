@@ -1,18 +1,13 @@
 package dbgo
 
 import (
-	"cmp"
 	"database/sql"
 	"fmt"
-	"gitub.com/go-webs/dbgo/builder"
-	"gitub.com/go-webs/dbgo/iface"
 	"gitub.com/go-webs/dbgo/util"
-	"reflect"
-	"strings"
 )
 
 type DbGo struct {
-	*Cluster
+	Cluster *Cluster
 	master  []*sql.DB
 	slave   []*sql.DB
 	SqlLogs []string
@@ -27,7 +22,7 @@ type DbGo struct {
 //	Open("mysql", "root:root@tcp(localhost:3306)/test?charset=utf8mb4&parseTime=true")
 //	Open(&Cluster{...})
 func Open(conf ...any) *DbGo {
-	var dg = DbGo{Cluster: &Cluster{}}
+	var dg = DbGo{}
 	switch len(conf) {
 	case 1:
 		if cluster, ok := conf[0].(*Cluster); ok {
@@ -44,6 +39,7 @@ func Open(conf ...any) *DbGo {
 			panic(err.Error())
 		}
 		dg.master = append(dg.master, db)
+		dg.Cluster = &Cluster{Driver: conf[0].(string)}
 		//return Open(&Cluster{Master: []Config{{Host: conf[1].(string)}}, Driver: conf[0].(string)})
 	default:
 		panic("config must be *dbgo.Cluster or sql.Open() origin params")
@@ -77,17 +73,18 @@ func (dg *DbGo) LastSql() (last string) {
 	}
 	return
 }
-
-func Raw[T cmp.Ordered](args ...T) iface.TypeRaw {
-	argsStr := util.Map[T, []T, string](args, func(s T) string {
-		return reflect.ValueOf(s).String()
-	})
-	return iface.TypeRaw(strings.Join(argsStr, ","))
+func (dg *DbGo) Query(query string, args ...any) (*sql.Rows, error) {
+	dg.recordSqlLog(query, args...)
+	return dg.SlaveDB().Query(query, args...)
 }
-
-//	func TableAs(table any, as string) []any {
-//		return []any{table, as}
-//	}
-func TableAs(table any, as string) *builder.TableBuilder {
-	return builder.NewTableBuilder("").Table(table, as)
+func (dg *DbGo) QueryRow(query string, args ...any) (*sql.Rows, error) {
+	dg.recordSqlLog(query, args...)
+	return dg.SlaveDB().Query(query, args...)
+}
+func (dg *DbGo) Exec(query string, args ...any) (sql.Result, error) {
+	dg.recordSqlLog(query, args...)
+	return dg.MasterDB().Exec(query, args...)
+}
+func (dg *DbGo) Ping() error {
+	return dg.MasterDB().Ping()
 }

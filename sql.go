@@ -59,7 +59,7 @@ func (db Database) BuildSqlQuery() (sql4prepare string, values []any, err error)
 }
 func (db Database) BuildSqlExists() (sql4prepare string, values []any, err error) {
 	sql4prepare, values, err = db.BuildSqlQuery()
-	sql4prepare = fmt.Sprintf("SELECT EXISTS(%s) AS exists", sql4prepare)
+	sql4prepare = fmt.Sprintf("SELECT EXISTS (%s)", sql4prepare)
 	return
 }
 func (db Database) BuildSqlUpsert(data any, keys []string, columns []string) (sql4prepare string, values []any, err error) {
@@ -70,7 +70,7 @@ func (db Database) BuildSqlUpsert(data any, keys []string, columns []string) (sq
 	return db.buildSqlInsert(data, "", fmt.Sprintf("ON DUPLICATE KEY UPDATE %s", strings.Join(tmp, ", ")))
 }
 func (db Database) BuildSqlInsertUsing(columns []string, b iface.IUnion) (sql4prepare string, values []any, err error) {
-	tables := db.BuildTable()
+	tables := db.BuildTableOnly4Test()
 	fields := util.Map[string, []string, string](columns, func(s string) string {
 		return fmt.Sprintf("`%s`", s)
 	})
@@ -129,7 +129,7 @@ func (db Database) buildSqlInsert(data any, ignoreCase string, onDuplicateKeys .
 	default:
 		err = errors.New("only map(slice) data supported")
 	}
-	tables := db.BuildTable()
+	tables := db.BuildTableOnly4Test()
 	var onDuplicateKey string
 	if len(onDuplicateKeys) > 0 {
 		onDuplicateKey = onDuplicateKeys[0]
@@ -154,7 +154,7 @@ func (db Database) BuildSqlUpdate(data any) (sql4prepare string, values []any, e
 		err = errors.New("only map data supported")
 		return
 	}
-	tables := db.BuildTable()
+	tables := db.BuildTableOnly4Test()
 	wheres, binds, err := db.BuildWhere()
 	if err != nil {
 		return sql4prepare, values, err
@@ -175,7 +175,7 @@ func (db Database) BuildSqlDelete(id ...int) (sql4prepare string, values []any, 
 		dbTmp = db
 	}
 
-	tables := dbTmp.BuildTable()
+	tables := dbTmp.BuildTableOnly4Test()
 	wheres, binds, err := dbTmp.BuildWhere()
 	if err != nil {
 		return sql4prepare, values, err
@@ -248,7 +248,7 @@ func (db Database) buildSqlIncOrDecEach(incDec string, data map[string]int, extr
 		}
 	}
 
-	tables := db.BuildTable()
+	tables := db.BuildTableOnly4Test()
 	wheres, binds, err := db.BuildWhere()
 	if err != nil {
 		return sql4prepare, values, err
@@ -257,7 +257,7 @@ func (db Database) buildSqlIncOrDecEach(incDec string, data map[string]int, extr
 	if wheres != "" {
 		wheres = fmt.Sprintf("WHERE %s", wheres)
 	}
-	sql4prepare = util.NamedSprintf("UPDATE :tables SET :incDec :updates :wheres", tables, incDec, strings.Join(updates, ", "), wheres)
+	sql4prepare = util.NamedSprintf("UPDATE :tables SET :updates :wheres", tables, strings.Join(updates, ", "), wheres)
 
 	return
 }

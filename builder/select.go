@@ -26,7 +26,7 @@ func (ss *SelectBuilder) SelectRaw(selects string, binds ...any) {
 	ss.AddSelect(rawStruct{selects, binds})
 }
 
-//func (ss *SelectBuilder) BuildTable() {
+//func (ss *SelectBuilder) BuildTableOnly4Test() {
 //
 //}
 

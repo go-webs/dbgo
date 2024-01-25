@@ -101,6 +101,18 @@ func (db Database) Transaction(closers ...func(db Database) error) (err error) {
 	return db.Commit()
 }
 
+func (db Database) queryRow(obj any, sql4prepare string, binds ...any) (err error) {
+	var prepare *sql.Stmt
+	if db.tx == nil {
+		prepare, err = db.SlaveDB().Prepare(sql4prepare)
+	} else {
+		prepare, err = db.tx.Prepare(sql4prepare)
+	}
+	defer prepare.Close()
+	db.recordSqlLog(sql4prepare, binds...)
+
+	return prepare.QueryRow(binds...).Scan(util.ToSliceAddressable(obj)...)
+}
 func (db Database) query(obj any, sql4prepare string, binds ...any) (err error) {
 	var prepare *sql.Stmt
 	if db.tx == nil {
@@ -182,7 +194,6 @@ func (db Database) scanMap(rfv reflect.Value, prepare *sql.Stmt, args ...any) er
 	}
 	return nil
 }
-
 func (db Database) scanStruct(rfv reflect.Value, prepare *sql.Stmt, args ...any) error {
 	//dbFields, structFields, structRft, err := db.getFieldsQuery(rfv)
 	//err2 := db.BuildFieldsQuery(rfv.Type())
@@ -222,7 +233,6 @@ func (db Database) scanStruct(rfv reflect.Value, prepare *sql.Stmt, args ...any)
 
 	return nil
 }
-
 func (db Database) execute(returnLastInsertId bool, sql4prepare string, binds ...any) (affectedRowsOrLastInsertId int64, err error) {
 	var prepare *sql.Stmt
 	if db.tx != nil {

@@ -70,7 +70,7 @@ func (db Database) BuildSqlUpsertStruct(data any, keys []string, columns []strin
 	return db.buildSqlInsertStruct(data, "", fmt.Sprintf("ON DUPLICATE KEY UPDATE %s", strings.Join(tmp, ", ")))
 }
 func (db Database) BuildSqlInsertUsingStruct(columns []string, b iface.IUnion) (sql4prepare string, values []any, err error) {
-	tables := db.BuildTable()
+	tables := db.BuildTableOnly4Test()
 	fields := util.Map[string, []string, string](columns, func(s string) string {
 		return fmt.Sprintf("`%s`", s)
 	})
@@ -129,7 +129,7 @@ func (db Database) buildSqlInsertStruct(data any, ignoreCase string, onDuplicate
 	default:
 		err = errors.New("only map(slice) data supported")
 	}
-	tables := db.BuildTable()
+	tables := db.BuildTableOnly4Test()
 	var onDuplicateKey string
 	if len(onDuplicateKeys) > 0 {
 		onDuplicateKey = onDuplicateKeys[0]
@@ -153,7 +153,7 @@ func (db Database) BuildSqlUpdateStruct(data any) (sql4prepare string, values []
 	default:
 		err = errors.New("only map data supported")
 	}
-	tables := db.BuildTable()
+	tables := db.BuildTableOnly4Test()
 	wheres, binds, err := db.BuildWhere()
 	if err != nil {
 		return sql4prepare, values, err
@@ -174,7 +174,7 @@ func (db Database) BuildSqlDeleteStruct(id ...int) (sql4prepare string, values [
 		dbTmp = db
 	}
 
-	tables := dbTmp.BuildTable()
+	tables := dbTmp.BuildTableOnly4Test()
 	wheres, binds, err := dbTmp.BuildWhere()
 	if err != nil {
 		return sql4prepare, values, err
@@ -247,7 +247,7 @@ func (db Database) buildSqlIncOrDecEachStruct(incDec string, data map[string]int
 		}
 	}
 
-	tables := db.BuildTable()
+	tables := db.BuildTableOnly4Test()
 	wheres, binds, err := db.BuildWhere()
 	if err != nil {
 		return sql4prepare, values, err

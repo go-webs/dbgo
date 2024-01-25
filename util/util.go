@@ -49,6 +49,21 @@ func ToSlice(arg any) []any {
 	}
 	return res
 }
+func ToSliceAddressable(arg any) []any {
+	ref := reflect.Indirect(reflect.ValueOf(arg))
+	var res []any
+	switch ref.Kind() {
+	case reflect.Slice:
+		l := ref.Len()
+		v := ref.Slice(0, l)
+		for i := 0; i < l; i++ {
+			res = append(res, v.Index(i).Addr().Interface())
+		}
+	default:
+		res = append(res, ref.Addr().Interface())
+	}
+	return res
+}
 func SliceContains(haystack []string, needle string) bool {
 	for _, v := range haystack {
 		if v == needle {

@@ -2,8 +2,8 @@ package dbgo
 
 import (
 	"database/sql"
+	"encoding/json"
 	_ "github.com/go-sql-driver/mysql"
-	"reflect"
 	"runtime"
 	"strings"
 	"testing"
@@ -24,27 +24,33 @@ func db() *Database {
 	dbg.EnableQueryLog(true)
 	return dbg.NewDB()
 }
+
+var dbg2 = Open("mysql", "root:Qx233233!@tcp(rm-bp1149oa09n39n236jo.mysql.rds.aliyuncs.com:3306)/game?charset=utf8mb4&parseTime=true")
+
 func db2() *Database {
-	var dbg = Open("mysql", "root:Qx233233!@tcp(rm-bp1149oa09n39n236jo.mysql.rds.aliyuncs.com:3306)/game?charset=utf8mb4&parseTime=true")
-	dbg.EnableQueryLog(true)
-	return dbg.NewDB()
+	dbg2.EnableQueryLog(true)
+	return dbg2.NewDB()
 }
 
 func assertsEqual(t *testing.T, expect, real any) {
-	if reflect.ValueOf(expect).String() != reflect.ValueOf(real).String() {
-		methodName, file, line := getCallerInfo(t)
-		t.Errorf("[%s] Error\n\t Trace - %s:%v\n\tExpect - %+v\n\t   Got - %#v\n------------------------------------------------------", methodName, file, line, expect, real)
+	marshal, err := json.Marshal(expect)
+	assertsError(t, err)
+	bytes, err := json.Marshal(real)
+	assertsError(t, err)
+	if string(marshal) != string(bytes) {
+		methodName, file, line := getCallerInfo()
+		t.Errorf("[%s] Error\n\t Trace - %s:%v\n\tExpect - %T %s\n\t   Got - %T %s\n------------------------------------------------------", methodName, file, line, expect, marshal, real, bytes)
 	}
 }
 
 func assertsError(t *testing.T, err error) {
 	if err != nil {
-		methodName, file, line := getCallerInfo(t)
+		methodName, file, line := getCallerInfo()
 		t.Errorf("[%s] Error\n\t Trace - %s:%v\n\t%s\n------------------------------------------------------", methodName, file, line, err.Error())
 	}
 }
 
-func getCallerInfo(t *testing.T) (string, string, int) {
+func getCallerInfo() (string, string, int) {
 	pc := make([]uintptr, 10)
 	n := runtime.Callers(2, pc)
 	frames := runtime.CallersFrames(pc[:n])
@@ -65,4 +71,10 @@ func getCallerInfo(t *testing.T) (string, string, int) {
 		//break
 	}
 	return "", "", 0
+}
+
+func JsonLog(t *testing.T, data any) {
+	marshal, err := json.Marshal(data)
+	assertsError(t, err)
+	t.Logf("json data: %s", marshal)
 }

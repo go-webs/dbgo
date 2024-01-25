@@ -75,41 +75,19 @@ func (db Database) Find(id int) (result map[string]any, err error) {
 	return db.Where("id", id).First()
 }
 func (db Database) Max(column string) (result float64, err error) {
-	aggregation, err := db.aggregation(column, "max")
-	if err != nil || aggregation == nil {
-		return result, err
-	}
-	return aggregation.(float64), nil
+	err = db.aggregation(&result, util.BackQuotes(column), "max")
+	return
 }
 func (db Database) Min(column string) (result float64, err error) {
-	aggregation, err := db.aggregation(column, "min")
-	if err != nil || aggregation == nil {
-		return result, err
-	}
-	return aggregation.(float64), nil
+	err = db.aggregation(&result, util.BackQuotes(column), "min")
+	return
 }
 func (db Database) Avg(column string) (result float64, err error) {
-	aggregation, err := db.aggregation(column, "avg")
-	if err != nil || aggregation == nil {
-		return result, err
-	}
-	return aggregation.(float64), nil
+	err = db.aggregation(&result, util.BackQuotes(column), "avg")
+	return
 }
 func (db Database) Count() (result int64, err error) {
-	aggregation, err := db.aggregation("*", "count")
-	if err != nil || aggregation == nil {
-		return result, err
-	}
-	return aggregation.(int64), nil
-}
-func (db Database) aggregation(column string, agg string) (result any, err error) {
-	var res = map[string]any{}
-	if err = db.SelectRaw(fmt.Sprintf("%s(%s) as %s", agg, util.BackQuotes(column), agg)).To(&res); err != nil {
-		return
-	}
-	if v, ok := res[agg]; ok {
-		result = v
-	}
+	err = db.aggregation(&result, "*", "count")
 	return
 }
 func (db Database) Value(column string) (result any, err error) {
@@ -134,7 +112,7 @@ func (db Database) Pluck(field string, fieldKey ...string) (result any, err erro
 		}
 		result = tmp
 	} else {
-		get, err := db.Select(field, fieldKey[0]).Get()
+		get, err := db.Select(field).Get()
 		if err != nil {
 			return result, err
 		}
@@ -147,26 +125,15 @@ func (db Database) Pluck(field string, fieldKey ...string) (result any, err erro
 	return
 }
 func (db Database) DoesntExist() (result bool, err error) {
-	exists, err := db.Exists()
-	if err != nil {
-		return result, err
-	}
-	result = !exists
-	return
+	result, err = db.Exists()
+	return !result, err
 }
 func (db Database) Exists() (result bool, err error) {
 	prepare, values, err := db.BuildSqlExists()
 	if err != nil {
 		return result, err
 	}
-	var res = map[string]bool{}
-	err = db.query(&res, prepare, values...)
-	if err != nil {
-		return
-	}
-	if v, ok := res["exists"]; ok {
-		result = v
-	}
+	err = db.queryRow(&result, prepare, values...)
 	return
 }
 func (db Database) Chunk(limit int, callback func(dataList []map[string]any) error) error {
@@ -213,56 +180,6 @@ func (db Lazy) Each(callback func(data map[string]any) error) error {
 		}
 	}
 	return nil
-}
-
-func (db Database) insert(returnLastInsertId, ignore bool, data any, mustFields ...string) (affectedRows int64, err error) {
-	rfv := reflect.Indirect(reflect.ValueOf(data))
-	switch rfv.Kind() {
-	case reflect.Map:
-		var sql4prepare string
-		var values []any
-		if ignore {
-			sql4prepare, values, err = db.BuildSqlInsertOrIgnore(data)
-		} else {
-			sql4prepare, values, err = db.BuildSqlInsert(data)
-		}
-		if err != nil {
-			return affectedRows, err
-		}
-		return db.execute(returnLastInsertId, sql4prepare, values...)
-	case reflect.Struct:
-		err = db.BuildFieldsExecute(data, mustFields...)
-		if err != nil {
-			return
-		}
-		return db.Table(data).Insert(db.Datas)
-	case reflect.Slice:
-		switch rfv.Type().Elem().Kind() {
-		case reflect.Map:
-			var sql4prepare string
-			var values []any
-			if ignore {
-				sql4prepare, values, err = db.BuildSqlInsertOrIgnore(data)
-			} else {
-				sql4prepare, values, err = db.BuildSqlInsert(data)
-			}
-			if err != nil {
-				return affectedRows, err
-			}
-			return db.execute(returnLastInsertId, sql4prepare, values...)
-		case reflect.Struct:
-			err = db.BuildFieldsExecute(data, mustFields...)
-			if err != nil {
-				return
-			}
-			return db.Table(data).Insert(db.Datas)
-		default:
-			err = errors.New("data must be map(slice) or struct(slice)")
-		}
-	default:
-		err = errors.New("data must be map(slice) or struct(slice)")
-	}
-	return
 }
 
 func (db Database) Insert(data any, mustFields ...string) (affectedRows int64, err error) {
@@ -394,7 +311,64 @@ func (db Database) Delete(id ...int) (affectedRows int64, err error) {
 func (db Database) Truncate(obj ...any) (affectedRows int64, err error) {
 	var table string
 	if len(obj) > 0 {
-		table = db.Table(obj[0]).BuildTable()
+		table = db.Table(obj[0]).BuildTableOnly4Test()
 	}
 	return db.execute(false, "TRUNCATE TABLE %s", table)
+}
+
+func (db Database) aggregation(bind any, column string, agg string) (err error) {
+	prepare, values, err2 := db.SelectRaw(fmt.Sprintf("%s(%s) as %s", agg, column, agg)).BuildSqlQuery()
+	if err2 != nil {
+		return err2
+	}
+	return db.queryRow(bind, prepare, values...)
+}
+func (db Database) insert(returnLastInsertId, ignore bool, data any, mustFields ...string) (affectedRows int64, err error) {
+	rfv := reflect.Indirect(reflect.ValueOf(data))
+	switch rfv.Kind() {
+	case reflect.Map:
+		var sql4prepare string
+		var values []any
+		if ignore {
+			sql4prepare, values, err = db.BuildSqlInsertOrIgnore(data)
+		} else {
+			sql4prepare, values, err = db.BuildSqlInsert(data)
+		}
+		if err != nil {
+			return affectedRows, err
+		}
+		return db.execute(returnLastInsertId, sql4prepare, values...)
+	case reflect.Struct:
+		err = db.BuildFieldsExecute(data, mustFields...)
+		if err != nil {
+			return
+		}
+		return db.Table(data).Insert(db.Datas)
+	case reflect.Slice:
+		switch rfv.Type().Elem().Kind() {
+		case reflect.Map:
+			var sql4prepare string
+			var values []any
+			if ignore {
+				sql4prepare, values, err = db.BuildSqlInsertOrIgnore(data)
+			} else {
+				sql4prepare, values, err = db.BuildSqlInsert(data)
+			}
+			if err != nil {
+				return affectedRows, err
+			}
+			return db.execute(returnLastInsertId, sql4prepare, values...)
+		case reflect.Struct:
+			err = db.BuildFieldsExecute(data, mustFields...)
+			if err != nil {
+				return
+			}
+			return db.Table(data).Insert(db.Datas)
+		default:
+			err = errors.New("data must be map(slice) or struct(slice)")
+		}
+	default:
+		err = errors.New("data must be map(slice) or struct(slice)")
+	}
+	return
 }

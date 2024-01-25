@@ -125,6 +125,6 @@ func TestDatabase_Increment(t *testing.T) {
 func TestDatabase_IncrementEach(t *testing.T) {
 	var build = db().Table("users").Where("name", "John")
 	fields, _, _ := build.BuildSqlIncrementEach(map[string]int{"age": 2, "votes": 1})
-	var expect = "UPDATE `test_users` SET + `age` = `age` + 2, `votes` = `votes` + 1 WHERE `name` = ?"
+	var expect = "UPDATE `test_users` SET `age` = `age` + 2, `votes` = `votes` + 1 WHERE `name` = ?"
 	assertsEqual(t, expect, fields)
 }
