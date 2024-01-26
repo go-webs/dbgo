@@ -10,9 +10,9 @@ import (
 )
 
 type Users struct {
-	Id        int64         `db:"id,primaryKey" json:"id,omitempty"`
-	Name      string        `db:"name" json:"name,omitempty"`
-	Email     string        `db:"email" json:"email,omitempty"`
+	Id        int64         `db:"id,pk" json:"id,omitempty"`
+	Name      string        `db:"name,COALESCE" json:"name,omitempty"`
+	Email     string        `db:"email,COALESCE" json:"email,omitempty"`
 	Votes     sql.NullInt64 `db:"votes" json:"votes,omitempty"`
 	CreatedAt sql.NullTime  `db:"created_at" json:"created_at,omitempty"`
 

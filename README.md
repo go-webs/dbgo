@@ -29,40 +29,40 @@ func jc() *DbGo {
 ## Database: Query Builder
 ### Running Database Queries
 ```go
-// db.Table().Select().Where().GroupBY().Having().OrderBy().Limit().Offset()
+// dbGame.Table().Select().Where().GroupBY().Having().OrderBy().Limit().Offset()
 // Retrieving All Rows From a Table
-db.Table("users").Get()
+dbGame.Table("users").Get()
 // Retrieving a Single Row / Column From a Table
-db.Table("users").Where("name", "John").First()
-db.Table("users").Value("email")
-db.Table("users").Find(3)
+dbGame.Table("users").Where("name", "John").First()
+dbGame.Table("users").Value("email")
+dbGame.Table("users").Find(3)
 // Retrieving a List of Column Values
-db.Table("users").Pluck("title")
-db.Table("users").Pluck("title", "name")    // {name: title}
+dbGame.Table("users").Pluck("title")
+dbGame.Table("users").Pluck("title", "name")    // {name: title}
 // Chunking Results
-db.Table("users").OrderBy("id").Chunk(100, func([]Users){/* some codes */})
-db.Table("users").Where("active", false).ChunkById(100, func([]Users){/* some codes */})
+dbGame.Table("users").OrderBy("id").Chunk(100, func([]Users){/* some codes */})
+dbGame.Table("users").Where("active", false).ChunkById(100, func([]Users){/* some codes */})
 // Streaming Results Lazily
-db.Table("users").OrderBy("id").Lazy().Each(func(Users){/* some codes */})
-db.Table("users").Where("active", false).LazyById().Each(func(Users){/* some codes */})
+dbGame.Table("users").OrderBy("id").Lazy().Each(func(Users){/* some codes */})
+dbGame.Table("users").Where("active", false).LazyById().Each(func(Users){/* some codes */})
 // Aggregates
-db.Table("users").Count()
-db.Table("orders").Max("price")
-db.Table("orders").Where("finalized", 1).Avg("price")
+dbGame.Table("users").Count()
+dbGame.Table("orders").Max("price")
+dbGame.Table("orders").Where("finalized", 1).Avg("price")
 // Determining if Records Exist
-db.Table("orders").Where("finalized", 1).Exists()
-db.Table("users").Where("finalized", 1).DoesntExist()
+dbGame.Table("orders").Where("finalized", 1).Exists()
+dbGame.Table("users").Where("finalized", 1).DoesntExist()
 ```
 ### Select Statements
 ```go
-db.Table("users").Select("name", "email as user_email").Get()
-db.Table("users").Distinct().Get()
-var query = db.Table("users").Select("name")
+dbGame.Table("users").Select("name", "email as user_email").Get()
+dbGame.Table("users").Distinct().Get()
+var query = dbGame.Table("users").Select("name")
 query.AddSelect("age").Get()
 ```
 ### Raw Expressions
 ```go
-db.Table("users").
+dbGame.Table("users").
 	Select(dbgo.Raw("count(*) as user_count, status")).
 	Where("status", "<>", 1).
 	GroupBy("status").
@@ -71,19 +71,19 @@ db.Table("users").
 #### Raw Methods
 - selectRaw
 ```go
-db.Table("orders").
+dbGame.Table("orders").
 	SelectRaw("price * ? as price_with_tax", [1.0825]).
 	Get()
 ```
 - whereRaw / orWhereRaw
 ```go
-db.Table("orders").
+dbGame.Table("orders").
 	WhereRaw("price > IF(state = "TX", ?, 100)", [200]).
 	Get()
 ```
 - havingRaw / orHavingRaw
 ```go
-db.Table("orders").
+dbGame.Table("orders").
 	Select("department", dbgo.Raw("SUM(price) as total_sales")).
 	GroupBy("department").
 	HavingRaw("SUM(price) > ?", [2500]).
@@ -91,13 +91,13 @@ db.Table("orders").
 ```
 - orderByRaw
 ```go
-db.Table("orders").
+dbGame.Table("orders").
 	OrderByRaw("updated_at - created_at DESC").
 	Get()
 ```
 - groupByRaw
 ```go
-db.Table("orders").
+dbGame.Table("orders").
 	Select("city", "state").
 	GroupByRaw("city, state").
 	Get()
@@ -105,7 +105,7 @@ db.Table("orders").
 ### Joins
 - Inner Join Clause
 ```go
-db.Table("users").
+dbGame.Table("users").
 	Join("contacts", "users.id", "=", "contacts.user_id").
 	Join("orders", "users.id", "=", "orders.user_id").
 	Select("users.*", "contacts.phone", "orders.price").
@@ -113,28 +113,28 @@ db.Table("users").
 ```
 - Left Join / Right Join Clause
 ```go
-db.Table("users").
+dbGame.Table("users").
     LeftJoin("posts", "users.id", "=", "posts.user_id").
     Get()
 
-db.Table("users").
+dbGame.Table("users").
     RightJoin("posts", "users.id", "=", "posts.user_id").
     Get()
 ```
 - Cross Join Clause
 ```go
-db.Table("sizes").
+dbGame.Table("sizes").
     CrossJoin("colors").
     Get()
 ```
 - Advanced Join Clauses
 ```go
-db.Table("users").Join("contacts", func (joins dbgo.JoinClause) {
+dbGame.Table("users").Join("contacts", func (joins dbgo.JoinClause) {
             joins.On("users.id", "=", "contacts.user_id").OrOn(/* ... */);
         }).
         Get()
 
-db.Table("users").
+dbGame.Table("users").
     Join("contacts", func (joins dbgo.JoinClause) {
         joins.On("users.id", "=", "contacts.user_id").Where("contacts.user_id", ">", 5)
     }).
@@ -143,59 +143,59 @@ db.Table("users").
 - Subquery Joins
 ```go
 latestPosts := jc.able("posts").Select("user_id", dbgo.Raw("MAX(created_at) as last_post_created_at")).Where("is_published", true).GroupBy("user_id")
-db.Table("users").JoinSub(latestPosts, "latest_posts", function (joins dbgo.JoinClause) {
+dbGame.Table("users").JoinSub(latestPosts, "latest_posts", function (joins dbgo.JoinClause) {
             joins.On("users.id", "=", "latest_posts.user_id")
         }).Get()
 ```
 
 ### Unions
 ```go
-first := db.Table("users").WhereNull("first_name")
-db.Table("users").WhereNull("last_name").Union(first).Get()
+first := dbGame.Table("users").WhereNull("first_name")
+dbGame.Table("users").WhereNull("last_name").Union(first).Get()
 ```
 ### Basic Where Clauses
 ```go
 // Where Clauses
-db.Table("users").Where("votes","=",100).Where("age",">",35).Get()
-db.Table("users").Where("votes",">=",100).Get()
-db.Table("users").Where("votes","<>",100).Get()
-db.Table("users").Where("name","like","Joh%").Get()
-db.Table("users").Where([][]any{
+dbGame.Table("users").Where("votes","=",100).Where("age",">",35).Get()
+dbGame.Table("users").Where("votes",">=",100).Get()
+dbGame.Table("users").Where("votes","<>",100).Get()
+dbGame.Table("users").Where("name","like","Joh%").Get()
+dbGame.Table("users").Where([][]any{
 	{"status", "=", 1},
 	{"subscribed", "<>", 1},
 }).Get()
 
 // Or Where Clauses
-db.Table("users").Where("votes",">",100).OrWhere("name", "John").Get()
-db.Table("users").Where("votes",">",100).OrWhere(func(query dbgo.Builder){
+dbGame.Table("users").Where("votes",">",100).OrWhere("name", "John").Get()
+dbGame.Table("users").Where("votes",">",100).OrWhere(func(query dbgo.Builder){
 	query.Where("name","Abigail").Where("votes",">",50)
 }).Get()
 // The example above will produce the following SQL:
 // select * from users where votes > 100 or (name = "Abigail" and votes > 50)
 
 // Where Not Clauses
-db.Table("products").WhereNot(func(query dbgo.Builder){
+dbGame.Table("products").WhereNot(func(query dbgo.Builder){
         query.Where("clearance", true).OrWhere("price", "<", 10)
     }).Get()
 
 // JSON Where Clauses
-db.Table("users").Where("preferences->dining->meal", "salad").Get()
-db.Table("users").WhereJsonContains("optionsArr->languages", "en").Get()
-db.Table("users").WhereJsonContains("optionsArr->languages", []string{"en", "de"}).Get()
-db.Table("users").WhereJsonLength("optionsArr->languages", 0).Get()
-db.Table("users").WhereJsonLength("optionsArr->languages", ">", 1).Get()
+dbGame.Table("users").Where("preferences->dining->meal", "salad").Get()
+dbGame.Table("users").WhereJsonContains("optionsArr->languages", "en").Get()
+dbGame.Table("users").WhereJsonContains("optionsArr->languages", []string{"en", "de"}).Get()
+dbGame.Table("users").WhereJsonLength("optionsArr->languages", 0).Get()
+dbGame.Table("users").WhereJsonLength("optionsArr->languages", ">", 1).Get()
 
 // Additional Where Clauses
-db.Table("users").WhereBetween("votes", []int{1, 100}).Get()
-db.Table("users").WhereNotBetween("votes", []int{1, 100}).Get()
-db.Table("patients").WhereBetweenColumns("weight", []string{"minimum_allowed_weight", "maximum_allowed_weight"}).Get()
-db.Table("patients").whereNotBetweenColumns("weight", []string{"minimum_allowed_weight", "maximum_allowed_weight"}).Get()
-db.Table("users").WhereIn("id", [1, 2, 3]).Get()
-db.Table("users").WhereNotIn("id", [1, 2, 3]).Get()
+dbGame.Table("users").WhereBetween("votes", []int{1, 100}).Get()
+dbGame.Table("users").WhereNotBetween("votes", []int{1, 100}).Get()
+dbGame.Table("patients").WhereBetweenColumns("weight", []string{"minimum_allowed_weight", "maximum_allowed_weight"}).Get()
+dbGame.Table("patients").whereNotBetweenColumns("weight", []string{"minimum_allowed_weight", "maximum_allowed_weight"}).Get()
+dbGame.Table("users").WhereIn("id", [1, 2, 3]).Get()
+dbGame.Table("users").WhereNotIn("id", [1, 2, 3]).Get()
 
 // sub query
-activeUsers := db.Table("users").Select("id").Where("is_active", 1)
-db.Table("comments").WhereIn("user_id", activeUsers).Get()
+activeUsers := dbGame.Table("users").Select("id").Where("is_active", 1)
+dbGame.Table("comments").WhereIn("user_id", activeUsers).Get()
 // The example above will produce the following SQL:
 // select * from comments where user_id in (
 //    select id from users where is_active = 1
@@ -215,13 +215,13 @@ jc.Ttable("users").WhereTime("created_at", "=", "11:20:45").Get()
 // whereColumn / orWhereColumn
 jc.Ttable("users").WhereColumn("first_name", "last_name").Get()
 jc.Ttable("users").WhereColumn("updated_at", ">", "created_at").Get()
-db.Table("users").WhereColumn([][]string{
+dbGame.Table("users").WhereColumn([][]string{
     {"first_name", "=", "last_name"},
     {"updated_at", ">", "created_at"},
 }).Get()
 
 // Logical Grouping
-db.Table("users").Where("name", "=", "John").Where(func (query dbgo.WhereClause) {
+dbGame.Table("users").Where("name", "=", "John").Where(func (query dbgo.WhereClause) {
         query.Where("votes", ">", 100).OrWhere("title", "=", "Admin")
     }).Get()
 // The example above will produce the following SQL:
@@ -230,60 +230,60 @@ db.Table("users").Where("name", "=", "John").Where(func (query dbgo.WhereClause)
 ### Advanced Where Clauses
 ```go
 // Where Exists Clauses
-db.Table("users").WhereExists(func (query dbgo.Database) {
+dbGame.Table("users").WhereExists(func (query dbgo.Database) {
         query.Select(dbgo.Raw(1)).Table("orders").WhereColumn("orders.user_id", "users.id")
     }).Get()
 
-orders := db.Table("orders").Select(dbgo.Raw(1)).WhereColumn("orders.user_id", "users.id")
-db.Table("users").WhereExists(orders).Get()
+orders := dbGame.Table("orders").Select(dbgo.Raw(1)).WhereColumn("orders.user_id", "users.id")
+dbGame.Table("users").WhereExists(orders).Get()
 // Both of the examples above will produce the following SQL:
 // select * from users where exists (
 //    select 1 from orders where orders.user_id = users.id)
 
 // Subquery Where Clauses
-db.Table("users").Where(func (query dbgo.Builder) {
+dbGame.Table("users").Where(func (query dbgo.Builder) {
         query.Select("type").From("membership").WhereColumn("membership.user_id", "users.id").OrderByDesc("membership.start_date").Limit(1)
     }, "=", "Pro").Get()
-db.Table("income").Where("amount", "<", func (query dbgo.Builder) {
+dbGame.Table("income").Where("amount", "<", func (query dbgo.Builder) {
         query.SelectRaw("avg(i.amount)").From("incomes as i")
     }).Get()
 
 // Full Text Where Clauses: match(bio) against("web developer")
-db.Table("users").WhereFullText("bio", "web developer").Get()
+dbGame.Table("users").WhereFullText("bio", "web developer").Get()
 ```
 ### Ordering, Grouping, Limit and Offset
 ```go
 // Ordering
-db.Table("users").OrderBy("name", "desc").Get()
-db.Table("users").OrderBy("name", "desc").OrderBy("email", "asc").Get()
-db.Table("users").Latest().First()
-db.Table("users").InRandomOrder().First()
+dbGame.Table("users").OrderBy("name", "desc").Get()
+dbGame.Table("users").OrderBy("name", "desc").OrderBy("email", "asc").Get()
+dbGame.Table("users").Latest().First()
+dbGame.Table("users").InRandomOrder().First()
 
-query := db.Table("users").OrderBy("name")
+query := dbGame.Table("users").OrderBy("name")
 query.Reorder().Get()
 
-query := db.Table("users").OrderBy("name")
+query := dbGame.Table("users").OrderBy("name")
 query.Reorder("email", "desc").Get()
 
 // Grouping
-db.Table("users").GroupBy("account_id").Having("account_id", ">", 100).Get()
-db.Table("orders").SelectRaw("count(id) as number_of_orders, customer_id").GroupBy("customer_id").HavingBetween("number_of_orders", [5, 15]).Get()
-db.Table("users").GroupBy("first_name", "status").Having("account_id", ">", 100).Get()
+dbGame.Table("users").GroupBy("account_id").Having("account_id", ">", 100).Get()
+dbGame.Table("orders").SelectRaw("count(id) as number_of_orders, customer_id").GroupBy("customer_id").HavingBetween("number_of_orders", [5, 15]).Get()
+dbGame.Table("users").GroupBy("first_name", "status").Having("account_id", ">", 100).Get()
 
 // Limit and Offset and Page
-db.Table("users").Skip(10).Take(5).Get()
-db.Table("users").Offset(10).Limit(5).Get()
-db.Table("users").Page(3).Limit(5).Get()
+dbGame.Table("users").Skip(10).Take(5).Get()
+dbGame.Table("users").Offset(10).Limit(5).Get()
+dbGame.Table("users").Page(3).Limit(5).Get()
 ```
 ### Conditional Clauses
 ```go
 role := http.Request.Param("role")
-db.Table("users").When(role, func (query dbgo.Builder, role string) {
+dbGame.Table("users").When(role, func (query dbgo.Builder, role string) {
         query.Where("role_id", role);
     }).Get()
 
 sortByVotes := http.Request.Param("sort_by_votes").Boolean()
-db.Table("users").
+dbGame.Table("users").
     When(sortByVotes, func (query dbgo.Builder, sortByVotes bool) {
         query.OrderBy("votes")
     }, func (query dbgo.Builder) {
@@ -292,33 +292,33 @@ db.Table("users").
 ```
 ### Insert Statements
 ```go
-db.Table("users").Insert([
+dbGame.Table("users").Insert([
     "email" => "kayla@example.com",
     "votes" => 0
 ]);
 
-db.Table("users").Insert([
+dbGame.Table("users").Insert([
     ["email" => "picard@example.com", "votes" => 0],
     ["email" => "janeway@example.com", "votes" => 0],
 ]);
 
-db.Table("users").InsertOrIgnore([
+dbGame.Table("users").InsertOrIgnore([
     ["id" => 1, "email" => "sisko@example.com"],
     ["id" => 2, "email" => "archer@example.com"],
 ]);
 
-db.Table("pruned_users").InsertUsing([
+dbGame.Table("pruned_users").InsertUsing([
     "id", "name", "email", "email_verified_at"
-], db.Table("users").Select(
+], dbGame.Table("users").Select(
     "id", "name", "email", "email_verified_at"
 ).Where("updated_at", "<=", now().SubMonth()));
 
 // Auto-Incrementing IDs
-id := db.Table("users").InsertGetId(
+id := dbGame.Table("users").InsertGetId(
     ["email" => "john@example.com", "votes" => 0]
 );
 
-db.Table("flights").Upsert(
+dbGame.Table("flights").Upsert(
     [
         ["departure" => "Oakland", "destination" => "San Diego", "price" => 99],
         ["departure" => "Chicago", "destination" => "New York", "price" => 150]
@@ -329,43 +329,43 @@ db.Table("flights").Upsert(
 ```
 ### Update Statements
 ```go
-affected := db.Table("users").Where("id", 1).Update(["votes" => 1])
+affected := dbGame.Table("users").Where("id", 1).Update(["votes" => 1])
 
-db.Table("users").UpdateOrInsert(
+dbGame.Table("users").UpdateOrInsert(
     ["email" => "john@example.com", "name" => "John"],
     ["votes" => "2"]
 )
 
-affected := db.Table("users").Where("id", 1).Update(["optionsArr->Enabled" => true])
+affected := dbGame.Table("users").Where("id", 1).Update(["optionsArr->Enabled" => true])
 
-db.Table("users").Increment("votes")
+dbGame.Table("users").Increment("votes")
 
-db.Table("users").Increment("votes", 5)
+dbGame.Table("users").Increment("votes", 5)
 
-db.Table("users").Decrement("votes")
+dbGame.Table("users").Decrement("votes")
 
-db.Table("users").Decrement("votes", 5)
+dbGame.Table("users").Decrement("votes", 5)
 
-db.Table("users").Increment("votes", 1, ["name" => "John"])
+dbGame.Table("users").Increment("votes", 1, ["name" => "John"])
 
-db.Table("users").IncrementEach([
+dbGame.Table("users").IncrementEach([
     "votes" => 5,
     "balance" => 100,
 ])
 ```
 ### Delete Statements
 ```go
-db.Table('users').Delete()
-db.Table('users').Where('votes', '>', 100).Delete()
-db.Table('users').Truncate()
+dbGame.Table('users').Delete()
+dbGame.Table('users').Where('votes', '>', 100).Delete()
+dbGame.Table('users').Truncate()
 ```
 ### Pessimistic Locking
 ```go
-db.Table('users').Where('votes', '>', 100).SharedLock().Get()
-db.Table('users').Where('votes', '>', 100).LockForUpdate().Get()
+dbGame.Table('users').Where('votes', '>', 100).SharedLock().Get()
+dbGame.Table('users').Where('votes', '>', 100).LockForUpdate().Get()
 ```
 ### Debugging
 ```go
-db.Table('users').Where('votes', '>', 100).Print()
-db.Table('users').Where('votes', '>', 100).PrintRawSql()
+dbGame.Table('users').Where('votes', '>', 100).Print()
+dbGame.Table('users').Where('votes', '>', 100).PrintRawSql()
 ```

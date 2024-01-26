@@ -1,26 +1,62 @@
 package dbgo
 
 import (
+	"fmt"
+	"gitub.com/go-webs/dbgo/util"
+	"strconv"
 	"testing"
+	"time"
 )
 
 func TestDatabase_Insert(t *testing.T) {
 	var u = []Users{
-		//{Email: "a112121@a.com", Votes: 11},
-		//{Email: "a112132@a.com", Votes: 11},
+		{Email: "a112121@a.com", Votes: util.NullInt64From(11)},
+		{Email: "a112122@a.com", Votes: util.NullInt64From(11)},
 	}
 	var d = db()
 	err2 := d.BuildFieldsExecute(&u)
 	assertsError(t, err2)
 	t.Logf("%+v", *d.BindBuilder.Bindery)
+	prepare, values, err2 := d.BuildSqlInsertStructOnly(&u)
+	assertsError(t, err2)
+	t.Log(prepare)
+	t.Log(values)
 
-	var d2 = db2()
-	rows, err := d2.Insert(&u)
+	//var d2 = db2()
+	//rows, err := d2.Insert(&u)
+	//
+	//t.Log(d2.SqlLogs)
+	//
+	//assertsError(t, err)
+	//assertsEqual(t, int64(1), rows)
+}
 
-	t.Log(d2.SqlLogs)
+func TestDatabase_Update(t *testing.T) {
+	tmp := time.Now().Unix()
 
+	//rows, err := db2().Table("users").Where("id", 1).Update(map[string]any{"votes": util.NullInt64From(tmp)})
+	//assertsError(t, err)
+	//assertsEqual(t, int64(1), rows)
+	//rows, err = db2().Table("users").Where("id", 1).Update(map[string]any{"votes": util.NullInt64From(tmp)})
+	//assertsError(t, err)
+	//assertsEqual(t, int64(0), rows)
+
+	var u = Users{Id: 1, Name: strconv.Itoa(int(tmp) + 1)}
+	affectedRows, err := db2().Update(&u)
 	assertsError(t, err)
-	assertsEqual(t, int64(1), rows)
+	assertsEqual(t, 1, affectedRows)
+	t.Log(db2().SqlLogs)
+}
+func TestDatabase_InsertGetId(t *testing.T) {
+	result, err2 := db2().Table(Users{}).Max("id")
+	assertsError(t, err2)
+	tmp := time.Now().Unix()
+	var u = Users{Email: fmt.Sprintf("%d@%d", tmp, tmp), Votes: util.NullInt64From(11)}
+	id, err := db2().InsertGetId(&u)
+	assertsError(t, err)
+	assertsEqual(t, result+1, id)
+	t.Log(id)
+	t.Log(db2().SqlLogs)
 }
 
 func TestDatabase_To(t *testing.T) {

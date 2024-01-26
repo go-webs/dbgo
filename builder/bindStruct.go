@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"database/sql/driver"
 	"errors"
 	"reflect"
 	"slices"
@@ -65,8 +66,8 @@ func (b *BindBuilder) BuildFieldsQuery(rft reflect.Type) (err error) {
 	return
 }
 func (b *BindBuilder) BuildFieldsExecute(data any, mustFields ...string) (err error) {
-	rfv := reflect.Indirect(reflect.ValueOf(data))
 	b.Bindery = &Bindery{}
+	rfv := reflect.Indirect(reflect.ValueOf(data))
 	switch rfv.Kind() {
 	case reflect.Struct:
 		b.buildFieldsExecuteStruct(rfv, mustFields...)
@@ -85,7 +86,7 @@ func (b *BindBuilder) BuildFieldsExecute(data any, mustFields ...string) (err er
 	}
 	return
 }
-func (b *BindBuilder) buildFieldsExecuteStruct(rfv reflect.Value, mustFields ...string) {
+func (b *BindBuilder) buildFieldsExecuteStruct(rfv reflect.Value, mustFields ...string) error {
 	entry := map[string]any{}
 	rft := rfv.Type()
 	for i := 0; i < rft.NumField(); i++ {
@@ -100,7 +101,7 @@ func (b *BindBuilder) buildFieldsExecuteStruct(rfv reflect.Value, mustFields ...
 		} else {
 			// primary key
 			tagSplit := strings.Split(tags, ",")
-			if len(tagSplit) > 1 {
+			if len(tagSplit) > 1 && tagSplit[1] == "pk" {
 				b.PrimaryKey = tagSplit[0]
 				b.PrimaryKeyValue = rfv.Field(i).Interface()
 			}
@@ -109,13 +110,23 @@ func (b *BindBuilder) buildFieldsExecuteStruct(rfv reflect.Value, mustFields ...
 				continue
 			}
 		}
-		// insert
+		// insert/update
 		if (rfv.Field(i).Kind() == reflect.Ptr && rfv.Field(i).IsNil()) || (rfv.Field(i).IsZero() && !slices.Contains(mustFields, tag)) {
 			continue
 		}
 		b.FieldsStruct = append(b.FieldsStruct, typeField.Name)
 		b.FieldsTag = append(b.FieldsTag, tag)
-		entry[tag] = rfv.Field(i).Interface()
+		var rfvVal = rfv.Field(i).Interface()
+		if v, ok := rfvVal.(driver.Valuer); ok {
+			value, err := v.Value()
+			if err != nil {
+				return err
+			}
+			entry[tag] = value
+		} else {
+			entry[tag] = rfvVal
+		}
 	}
 	b.Datas = append(b.Datas, entry)
+	return nil
 }

@@ -70,7 +70,11 @@ func (db Database) BuildSqlUpsert(data any, keys []string, columns []string) (sq
 	return db.buildSqlInsert(data, "", fmt.Sprintf("ON DUPLICATE KEY UPDATE %s", strings.Join(tmp, ", ")))
 }
 func (db Database) BuildSqlInsertUsing(columns []string, b iface.IUnion) (sql4prepare string, values []any, err error) {
-	tables := db.BuildTableOnly4Test()
+	var tables string
+	tables, err = db.BuildTable()
+	if err != nil {
+		return
+	}
 	fields := util.Map[string, []string, string](columns, func(s string) string {
 		return fmt.Sprintf("`%s`", s)
 	})
@@ -109,27 +113,37 @@ func (db Database) buildSqlInsert(data any, ignoreCase string, onDuplicateKeys .
 		if rfv.Len() == 0 {
 			return
 		}
-		// 先获取到插入字段
-		keys := rfv.Index(0).MapKeys()
-		sort.Slice(keys, func(i, j int) bool {
-			return keys[i].String() < keys[j].String()
-		})
-		for _, key := range keys {
-			fields = append(fields, util.BackQuotes(key.String()))
-		}
-		// 组合插入数据
-		for i := 0; i < rfv.Len(); i++ {
-			var valuesPlaceholderTmp []string
+		if rfv.Type().Elem().Kind() == reflect.Map {
+			// 先获取到插入字段
+			keys := rfv.Index(0).MapKeys()
+			sort.Slice(keys, func(i, j int) bool {
+				return keys[i].String() < keys[j].String()
+			})
 			for _, key := range keys {
-				valuesPlaceholderTmp = append(valuesPlaceholderTmp, "?")
-				values = append(values, rfv.Index(i).MapIndex(key).Interface())
+				fields = append(fields, util.BackQuotes(key.String()))
 			}
-			valuesPlaceholderArr = append(valuesPlaceholderArr, fmt.Sprintf("(%s)", strings.Join(valuesPlaceholderTmp, ",")))
+			// 组合插入数据
+			for i := 0; i < rfv.Len(); i++ {
+				var valuesPlaceholderTmp []string
+				for _, key := range keys {
+					valuesPlaceholderTmp = append(valuesPlaceholderTmp, "?")
+					values = append(values, rfv.Index(i).MapIndex(key).Interface())
+				}
+				valuesPlaceholderArr = append(valuesPlaceholderArr, fmt.Sprintf("(%s)", strings.Join(valuesPlaceholderTmp, ",")))
+			}
+		} else {
+			err = errors.New("only map(slice) data supported")
+			return
 		}
 	default:
 		err = errors.New("only map(slice) data supported")
+		return
 	}
-	tables := db.BuildTableOnly4Test()
+	var tables string
+	tables, err = db.BuildTable()
+	if err != nil {
+		return
+	}
 	var onDuplicateKey string
 	if len(onDuplicateKeys) > 0 {
 		onDuplicateKey = onDuplicateKeys[0]
@@ -154,7 +168,11 @@ func (db Database) BuildSqlUpdate(data any) (sql4prepare string, values []any, e
 		err = errors.New("only map data supported")
 		return
 	}
-	tables := db.BuildTableOnly4Test()
+	var tables string
+	tables, err = db.BuildTable()
+	if err != nil {
+		return
+	}
 	wheres, binds, err := db.BuildWhere()
 	if err != nil {
 		return sql4prepare, values, err
@@ -175,7 +193,11 @@ func (db Database) BuildSqlDelete(id ...int) (sql4prepare string, values []any, 
 		dbTmp = db
 	}
 
-	tables := dbTmp.BuildTableOnly4Test()
+	var tables string
+	tables, err = dbTmp.BuildTable()
+	if err != nil {
+		return
+	}
 	wheres, binds, err := dbTmp.BuildWhere()
 	if err != nil {
 		return sql4prepare, values, err
@@ -248,7 +270,11 @@ func (db Database) buildSqlIncOrDecEach(incDec string, data map[string]int, extr
 		}
 	}
 
-	tables := db.BuildTableOnly4Test()
+	var tables string
+	tables, err = db.BuildTable()
+	if err != nil {
+		return
+	}
 	wheres, binds, err := db.BuildWhere()
 	if err != nil {
 		return sql4prepare, values, err
@@ -265,4 +291,12 @@ func (db Database) buildSqlIncOrDecEach(incDec string, data map[string]int, extr
 func (db Database) ToSqlOnly() string {
 	sql4prepare, _, _ := db.BuildSqlQuery()
 	return sql4prepare
+}
+
+func (db Database) BuildSqlInsertStructOnly(data any, mustFields ...string) (sql4prepare string, values []any, err error) {
+	err = db.BuildFieldsExecute(data, mustFields...)
+	if err != nil {
+		return
+	}
+	return db.Table(data).buildSqlInsert(db.Datas, "")
 }

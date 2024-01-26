@@ -73,18 +73,6 @@ func (dg *DbGo) LastSql() (last string) {
 	}
 	return
 }
-func (dg *DbGo) Query(query string, args ...any) (*sql.Rows, error) {
-	dg.recordSqlLog(query, args...)
-	return dg.SlaveDB().Query(query, args...)
-}
-func (dg *DbGo) QueryRow(query string, args ...any) (*sql.Rows, error) {
-	dg.recordSqlLog(query, args...)
-	return dg.SlaveDB().Query(query, args...)
-}
-func (dg *DbGo) Exec(query string, args ...any) (sql.Result, error) {
-	dg.recordSqlLog(query, args...)
-	return dg.MasterDB().Exec(query, args...)
-}
 func (dg *DbGo) Ping() error {
 	return dg.MasterDB().Ping()
 }

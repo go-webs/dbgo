@@ -85,6 +85,40 @@ func (db Database) Begin() (err error) {
 	err = db.transaction.Begin(db.MasterDB())
 	return
 }
+func (db Database) Query(query string, args ...any) (*sql.Rows, error) {
+	db.recordSqlLog(query, args...)
+	if db.tx != nil {
+		return db.tx.Query(query, args...)
+	}
+	return db.SlaveDB().Query(query, args...)
+}
+func (db Database) QueryRow(query string, args ...any) (*sql.Rows, error) {
+	db.recordSqlLog(query, args...)
+	if db.tx != nil {
+		return db.tx.Query(query, args...)
+	}
+	return db.SlaveDB().Query(query, args...)
+}
+func (db Database) Exec(query string, args ...any) (sql.Result, error) {
+	db.recordSqlLog(query, args...)
+	if db.tx != nil {
+		return db.tx.Exec(query, args...)
+	}
+	return db.MasterDB().Exec(query, args...)
+}
+
+func (db Database) QueryMap(query string, args ...any) (res map[string]any, err error) {
+	res = make(map[string]any)
+	err = db.query(&res, query, args...)
+	return
+}
+func (db Database) QueryMapList(query string, args ...any) (res []map[string]any, err error) {
+	err = db.query(&res, query, args...)
+	return
+}
+func (db Database) Execute(query string, args ...any) (affectedRows int64, err error) {
+	return db.execute(false, query, args...)
+}
 
 // Transaction ...
 func (db Database) Transaction(closers ...func(db Database) error) (err error) {

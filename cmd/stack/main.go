@@ -2,7 +2,7 @@
 
 package main
 
-import "log"
+import "fmt"
 
 type Model struct {
 	AAA int
@@ -23,8 +23,15 @@ func (u Users) First() string {
 }
 
 func main() {
-	var u = Users{&Model{}, 3}
-	log.Println(u.First())
-	log.Println(u.Age)
-	log.Println(u.AAA)
+	var u = Users{
+		Model: &Model{3},
+		Age:   3,
+	}
+	var b = *u.Model
+	u.Model.SetA()
+	fmt.Println(u.AAA)
+	fmt.Println(b.AAA)
+	u.Model = &b
+	fmt.Println(u.AAA)
+	fmt.Println(b.AAA)
 }

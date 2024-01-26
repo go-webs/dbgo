@@ -236,7 +236,7 @@ func (db Database) Update(data any, mustFields ...string) (affectedRows int64, e
 		//	//todo 如果没有where条件,使用主键
 		//}
 		if db.Bindery.PrimaryKey != "" && db.Bindery.PrimaryKeyValue != nil {
-			return db.Table(data).Where(db.Bindery.PrimaryKey, db.Bindery.PrimaryKeyValue).Update(db.Datas)
+			return db.Table(data).Where(db.Bindery.PrimaryKey, db.Bindery.PrimaryKeyValue).Update(db.Datas[0])
 		}
 		return db.Table(data).Update(db.Datas)
 	//case reflect.Slice:
@@ -257,7 +257,7 @@ func (db Database) Update(data any, mustFields ...string) (affectedRows int64, e
 	//		err = errors.New("data must be map(slice) or struct(slice)")
 	//	}
 	default:
-		err = errors.New("data must be map(slice) or struct(slice)")
+		err = errors.New("data must be map or struct")
 	}
 	return
 }
@@ -311,7 +311,10 @@ func (db Database) Delete(id ...int) (affectedRows int64, err error) {
 func (db Database) Truncate(obj ...any) (affectedRows int64, err error) {
 	var table string
 	if len(obj) > 0 {
-		table = db.Table(obj[0]).BuildTableOnly4Test()
+		table, err = db.Table(obj[0]).BuildTable()
+		if err != nil {
+			return
+		}
 	}
 	return db.execute(false, "TRUNCATE TABLE %s", table)
 }
@@ -343,7 +346,7 @@ func (db Database) insert(returnLastInsertId, ignore bool, data any, mustFields 
 		if err != nil {
 			return
 		}
-		return db.Table(data).Insert(db.Datas)
+		return db.Table(data).insert(returnLastInsertId, ignore, db.Datas, mustFields...)
 	case reflect.Slice:
 		switch rfv.Type().Elem().Kind() {
 		case reflect.Map:
@@ -363,7 +366,7 @@ func (db Database) insert(returnLastInsertId, ignore bool, data any, mustFields 
 			if err != nil {
 				return
 			}
-			return db.Table(data).Insert(db.Datas)
+			return db.Table(data).insert(returnLastInsertId, ignore, db.Datas, mustFields...)
 		default:
 			err = errors.New("data must be map(slice) or struct(slice)")
 		}

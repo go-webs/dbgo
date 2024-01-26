@@ -1,17 +1,17 @@
 
-func (db Database) OrHavingBetween(col string, haystack ...any) Database {
-	db.OrHavingRaw(fmt.Sprintf("%s BETWEEN ? AND ?", util.BackQuotes(col)), haystack)
-	return db
+func (dbGame Database) OrHavingBetween(col string, haystack ...any) Database {
+	dbGame.OrHavingRaw(fmt.Sprintf("%s BETWEEN ? AND ?", util.BackQuotes(col)), haystack)
+	return dbGame
 }
-func (db Database) OrHavingNotBetween(col string, haystack ...any) Database {
-	db.OrHavingRaw(fmt.Sprintf("%s NOT BETWEEN ? AND ?", util.BackQuotes(col)), haystack)
-	return db
+func (dbGame Database) OrHavingNotBetween(col string, haystack ...any) Database {
+	dbGame.OrHavingRaw(fmt.Sprintf("%s NOT BETWEEN ? AND ?", util.BackQuotes(col)), haystack)
+	return dbGame
 }
-func (db Database) OrHavingNull(col string) Database {
-	db.OrHavingRaw(fmt.Sprintf("%s IS NULL", util.BackQuotes(col)))
-	return db
+func (dbGame Database) OrHavingNull(col string) Database {
+	dbGame.OrHavingRaw(fmt.Sprintf("%s IS NULL", util.BackQuotes(col)))
+	return dbGame
 }
-func (db Database) OrHavingNotNull(col string) Database {
-	db.OrHavingRaw(fmt.Sprintf("%s IS NOT NULL", util.BackQuotes(col)))
-	return db
+func (dbGame Database) OrHavingNotNull(col string) Database {
+	dbGame.OrHavingRaw(fmt.Sprintf("%s IS NOT NULL", util.BackQuotes(col)))
+	return dbGame
 }

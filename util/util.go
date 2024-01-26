@@ -1,6 +1,7 @@
 package util
 
 import (
+	"database/sql"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -10,30 +11,71 @@ import (
 	"time"
 )
 
+//////////// struct field ptr 4 orm helpers ////////////
+
+// PtrBool helper
 func PtrBool(arg bool) *bool {
 	return &arg
 }
+
+// PtrString helper
 func PtrString(arg string) *string {
 	return &arg
 }
+
+// PtrInt helper
 func PtrInt(arg int) *int {
 	return &arg
 }
+
+// PtrInt8 helper
 func PtrInt8(arg int8) *int8 {
 	return &arg
 }
+
+// PtrInt16 helper
 func PtrInt16(arg int16) *int16 {
 	return &arg
 }
+
+// PtrInt64 helper
 func PtrInt64(arg int64) *int64 {
 	return &arg
 }
+
+// PtrFloat64 helper
 func PtrFloat64(arg float64) *float64 {
 	return &arg
 }
+
+// PtrTime helper
 func PtrTime(arg time.Time) *time.Time {
 	return &arg
 }
+
+//////////// sql.Null* type helpers ////////////
+
+// NullInt64From helper
+func NullInt64From(arg int64) sql.NullInt64 { return sql.NullInt64{Int64: arg, Valid: true} }
+
+// NullInt32From helper
+func NullInt32From(arg int32) sql.NullInt32 { return sql.NullInt32{Int32: arg, Valid: true} }
+
+// NullInt16From helper
+func NullInt16From(arg int16) sql.NullInt16 { return sql.NullInt16{Int16: arg, Valid: true} }
+
+// NullByteFrom helper
+func NullByteFrom(arg byte) sql.NullByte { return sql.NullByte{Byte: arg, Valid: true} }
+
+// NullFloat64From helper
+func NullFloat64From(arg float64) sql.NullFloat64 { return sql.NullFloat64{Float64: arg, Valid: true} }
+
+// NullBoolFrom helper
+func NullBoolFrom(arg bool) sql.NullBool { return sql.NullBool{Bool: arg, Valid: true} }
+
+// NullTimeFrom helper
+func NullTimeFrom(arg time.Time) sql.NullTime { return sql.NullTime{Time: arg, Valid: true} }
+
 func ToSlice(arg any) []any {
 	ref := reflect.Indirect(reflect.ValueOf(arg))
 	var res []any
