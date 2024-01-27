@@ -2,7 +2,7 @@ package builder
 
 import (
 	"fmt"
-	"gitub.com/go-webs/dbgo/util"
+	"github.com/go-webs/dbgo/util"
 	"strings"
 )
 

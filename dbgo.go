@@ -3,7 +3,7 @@ package dbgo
 import (
 	"database/sql"
 	"fmt"
-	"gitub.com/go-webs/dbgo/util"
+	"github.com/go-webs/dbgo/util"
 )
 
 type DbGo struct {

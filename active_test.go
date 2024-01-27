@@ -2,7 +2,7 @@ package dbgo
 
 import (
 	"fmt"
-	"gitub.com/go-webs/dbgo/util"
+	"github.com/go-webs/dbgo/util"
 	"strconv"
 	"testing"
 	"time"

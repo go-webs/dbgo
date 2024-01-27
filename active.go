@@ -3,8 +3,8 @@ package dbgo
 import (
 	"errors"
 	"fmt"
-	"gitub.com/go-webs/dbgo/iface"
-	"gitub.com/go-webs/dbgo/util"
+	"github.com/go-webs/dbgo/iface"
+	"github.com/go-webs/dbgo/util"
 	"math"
 	"reflect"
 	"slices"

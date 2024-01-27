@@ -1,7 +1,7 @@
 package builder
 
 import (
-	"gitub.com/go-webs/dbgo/iface"
+	"github.com/go-webs/dbgo/iface"
 	"testing"
 )
 

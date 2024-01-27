@@ -3,7 +3,7 @@ package builder
 import (
 	"errors"
 	"fmt"
-	"gitub.com/go-webs/dbgo/iface"
+	"github.com/go-webs/dbgo/iface"
 	"reflect"
 	"regexp"
 	"slices"

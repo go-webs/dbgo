@@ -2,9 +2,9 @@ package dbgo
 
 import (
 	"cmp"
-	"gitub.com/go-webs/dbgo/builder"
-	"gitub.com/go-webs/dbgo/iface"
-	"gitub.com/go-webs/dbgo/util"
+	"github.com/go-webs/dbgo/builder"
+	"github.com/go-webs/dbgo/iface"
+	"github.com/go-webs/dbgo/util"
 	"reflect"
 	"strings"
 )

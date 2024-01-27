@@ -3,8 +3,8 @@ package dbgo
 import (
 	"database/sql"
 	"errors"
-	"gitub.com/go-webs/dbgo/builder"
-	"gitub.com/go-webs/dbgo/util"
+	"github.com/go-webs/dbgo/builder"
+	"github.com/go-webs/dbgo/util"
 	"reflect"
 )
 

@@ -1,7 +1,7 @@
 package dbgo
 
 import (
-	"gitub.com/go-webs/dbgo/iface"
+	"github.com/go-webs/dbgo/iface"
 )
 
 // Join INNER JOIN

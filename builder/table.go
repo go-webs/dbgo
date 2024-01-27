@@ -3,7 +3,7 @@ package builder
 import (
 	"errors"
 	"fmt"
-	"gitub.com/go-webs/dbgo/util"
+	"github.com/go-webs/dbgo/util"
 	"reflect"
 	"strings"
 )
