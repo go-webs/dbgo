@@ -139,7 +139,11 @@ func BackQuotes(arg any) string {
 		split := strings.Split(v, " ")
 		split2 := strings.Split(split[0], ".")
 		if len(split2) > 1 {
-			tmp = append(tmp, fmt.Sprintf("`%s`.`%s`", split2[0], split2[1]))
+			if split2[1] == "*" {
+				tmp = append(tmp, fmt.Sprintf("`%s`.%s", split2[0], split2[1]))
+			} else {
+				tmp = append(tmp, fmt.Sprintf("`%s`.`%s`", split2[0], split2[1]))
+			}
 		} else {
 			tmp = append(tmp, fmt.Sprintf("`%s`", split2[len(split2)-1]))
 		}

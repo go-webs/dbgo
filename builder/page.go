@@ -43,3 +43,6 @@ func (b *PageBuilder) BuildPage() (sqlSegment string, binds []any) {
 	}
 	return
 }
+func (b *PageBuilder) GetPagination() (limit, offset, page int) {
+	return b.limit, b.offset, b.page
+}

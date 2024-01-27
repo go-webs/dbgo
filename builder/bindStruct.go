@@ -96,6 +96,7 @@ func (b *BindBuilder) buildFieldsExecuteStruct(rfv reflect.Value, mustFields ...
 		}
 		tags := typeField.Tag.Get("db")
 		var tag string
+		var isPk bool
 		if tags == "" {
 			tag = strings.ToLower(typeField.Name)
 		} else {
@@ -104,6 +105,7 @@ func (b *BindBuilder) buildFieldsExecuteStruct(rfv reflect.Value, mustFields ...
 			if len(tagSplit) > 1 && tagSplit[1] == "pk" {
 				b.PrimaryKey = tagSplit[0]
 				b.PrimaryKeyValue = rfv.Field(i).Interface()
+				isPk = true
 			}
 			tag = tagSplit[0]
 			if tag == TAGIGNORE {
@@ -116,6 +118,9 @@ func (b *BindBuilder) buildFieldsExecuteStruct(rfv reflect.Value, mustFields ...
 		}
 		b.FieldsStruct = append(b.FieldsStruct, typeField.Name)
 		b.FieldsTag = append(b.FieldsTag, tag)
+		if isPk {
+			continue
+		}
 		var rfvVal = rfv.Field(i).Interface()
 		if v, ok := rfvVal.(driver.Valuer); ok {
 			value, err := v.Value()

@@ -48,6 +48,7 @@ type typeWhereBetween struct {
 type WhereBuilderNew struct {
 	wheres []any
 	err    error
+	Exists bool
 }
 
 // NewWhereBuilderNew ptr
@@ -84,6 +85,9 @@ func (w *WhereBuilderNew) addTypeWhereStandard(boolean string, column any, opera
 func (w *WhereBuilderNew) BuildWhere() (sql4prepare string, values []any, err error) {
 	if w.err != nil {
 		return sql4prepare, values, w.err
+	}
+	if len(w.wheres) > 0 {
+		w.Exists = true
 	}
 
 	var sql4prepareArr []string
@@ -265,11 +269,17 @@ func (w *WhereBuilderNew) where(boolean string, column any, args ...any) iface.W
 		if rfv.Kind() == reflect.Slice { // in/between
 			var operators = []string{"in", "not in"}
 			if slices.Contains(operators, strings.ToLower(args[0].(string))) {
-				w.addTypeWhereIn(args[2].(string), column, args[0].(string), util.ToSlice(args[1]))
+				val := util.ToSlice(args[1])
+				if len(val) > 0 {
+					w.addTypeWhereIn(args[2].(string), column, args[0].(string), util.ToSlice(args[1]))
+				}
 			}
 			operators = []string{"between", "not between"}
 			if slices.Contains(operators, strings.ToLower(args[0].(string))) {
-				w.addTypeWhereBetween(args[2].(string), column, args[0].(string), util.ToSlice(args[1]))
+				val := util.ToSlice(args[1])
+				if len(val) > 0 {
+					w.addTypeWhereBetween(args[2].(string), column, args[0].(string), util.ToSlice(args[1]))
+				}
 			}
 		} else if builder, ok := args[1].(iface.IUnion); ok {
 			w.addTypeWhereSubQuery(args[2].(string), column, args[0].(string), builder)

@@ -185,7 +185,7 @@ func (db Database) BuildSqlUpdate(data any) (sql4prepare string, values []any, e
 
 	return
 }
-func (db Database) BuildSqlDelete(id ...int) (sql4prepare string, values []any, err error) {
+func (db Database) BuildSqlDelete(id ...int64) (sql4prepare string, values []any, err error) {
 	var dbTmp Database
 	if len(id) > 0 {
 		dbTmp = db.Where("id", id[0])
@@ -220,7 +220,7 @@ func (db Database) BuildSqlIncrement(column string, args ...any) (sql4prepare st
 	return db.buildSqlIncOrDec("+", column, args...)
 }
 
-func (db Database) BuildSqlIncrementEach(data map[string]int, extra ...any) (sql4prepare string, values []any, err error) {
+func (db Database) BuildSqlIncrementEach(data map[string]any, extra ...any) (sql4prepare string, values []any, err error) {
 	return db.buildSqlIncOrDecEach("+", data, extra...)
 }
 
@@ -228,21 +228,21 @@ func (db Database) BuildSqlDecrement(column string, args ...any) (sql4prepare st
 	return db.buildSqlIncOrDec("-", column, args...)
 }
 
-func (db Database) BuildSqlDecrementEach(data map[string]int, extra ...any) (sql4prepare string, values []any, err error) {
+func (db Database) BuildSqlDecrementEach(data map[string]any, extra ...any) (sql4prepare string, values []any, err error) {
 	return db.buildSqlIncOrDecEach("-", data, extra...)
 }
 
 func (db Database) buildSqlIncOrDec(incDec string, column string, args ...any) (sql4prepare string, values []any, err error) {
-	var data = map[string]int{}
+	var data = map[string]any{}
 	switch len(args) {
 	case 0:
 		data[column] = 1
 		return db.buildSqlIncOrDecEach(incDec, data)
 	case 1:
-		data[column] = args[0].(int)
+		data[column] = args[0]
 		return db.buildSqlIncOrDecEach(incDec, data)
 	case 2:
-		data[column] = args[0].(int)
+		data[column] = args[0]
 		return db.buildSqlIncOrDecEach(incDec, data, args[1])
 	}
 
@@ -251,7 +251,7 @@ func (db Database) buildSqlIncOrDec(incDec string, column string, args ...any) (
 
 // buildSqlIncOrDecEach specific
 // @incDec +/-
-func (db Database) buildSqlIncOrDecEach(incDec string, data map[string]int, extra ...any) (sql4prepare string, values []any, err error) {
+func (db Database) buildSqlIncOrDecEach(incDec string, data map[string]any, extra ...any) (sql4prepare string, values []any, err error) {
 	var updates []string
 	for k, v := range data {
 		updates = append(updates, fmt.Sprintf("%s = %s %s %v", util.BackQuotes(k), util.BackQuotes(k), incDec, v))

@@ -66,3 +66,8 @@ func (ts *TableBuilder) buildTableName(rft reflect.Type) (tab string) {
 	}
 	return
 }
+
+func (ts *TableBuilder) BuildTableNameOnly(obj any) (tab string) {
+	rft := reflect.Indirect(reflect.ValueOf(obj)).Type()
+	return strings.ToLower(rft.Name())
+}

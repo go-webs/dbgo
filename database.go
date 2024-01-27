@@ -33,13 +33,13 @@ func (db *transaction) Commit() (err error) {
 
 type Database struct {
 	*DbGo
-	transaction
+	*transaction
 	distinct  string
 	locking   *bool // Pessimistic Locking
 	lasyCount int
 
 	*builder.TableBuilder
-	*builder.SelectBuilder
+	builder.SelectBuilder
 	*builder.JoinBuilder
 	*builder.WhereBuilderNew
 	*builder.GroupBuilder
@@ -51,8 +51,9 @@ type Database struct {
 func newDatabase(dg *DbGo) *Database {
 	return &Database{
 		DbGo:            dg,
+		transaction:     &transaction{},
 		TableBuilder:    builder.NewTableBuilder(dg.Cluster.Prefix),
-		SelectBuilder:   builder.NewSelectBuilder(),
+		SelectBuilder:   *builder.NewSelectBuilder(),
 		JoinBuilder:     builder.NewJoinBuilder(dg.Cluster.Prefix),
 		WhereBuilderNew: builder.NewWhereBuilderNew(),
 		GroupBuilder:    builder.NewGroupBuilder(),
@@ -141,6 +142,9 @@ func (db Database) queryRow(obj any, sql4prepare string, binds ...any) (err erro
 		prepare, err = db.SlaveDB().Prepare(sql4prepare)
 	} else {
 		prepare, err = db.tx.Prepare(sql4prepare)
+	}
+	if err != nil {
+		return
 	}
 	defer prepare.Close()
 	db.recordSqlLog(sql4prepare, binds...)
@@ -269,10 +273,10 @@ func (db Database) scanStruct(rfv reflect.Value, prepare *sql.Stmt, args ...any)
 }
 func (db Database) execute(returnLastInsertId bool, sql4prepare string, binds ...any) (affectedRowsOrLastInsertId int64, err error) {
 	var prepare *sql.Stmt
-	if db.tx != nil {
-		prepare, err = db.tx.Prepare(sql4prepare)
-	} else {
+	if db.tx == nil {
 		prepare, err = db.MasterDB().Prepare(sql4prepare)
+	} else {
+		prepare, err = db.tx.Prepare(sql4prepare)
 	}
 	if err != nil {
 		return

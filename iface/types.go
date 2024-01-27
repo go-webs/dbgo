@@ -18,3 +18,13 @@ func IsExpression(obj any) (b bool) {
 	}
 	return
 }
+
+type Paginate struct {
+	Limit       int                      `json:"limit"`
+	Pages       int                      `json:"pages"`
+	CurrentPage int                      `json:"currentPage"`
+	PrevPage    int                      `json:"prevPage"`
+	NextPage    int                      `json:"nextPage"`
+	Total       int64                    `json:"total"`
+	Data        []map[string]interface{} `json:"data"`
+}

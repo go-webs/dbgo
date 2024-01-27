@@ -71,7 +71,7 @@ func (db Database) First() (result map[string]any, err error) {
 	err = db.query(&result, prepare, values...)
 	return
 }
-func (db Database) Find(id int) (result map[string]any, err error) {
+func (db Database) Find(id int64) (result map[string]any, err error) {
 	return db.Where("id", id).First()
 }
 func (db Database) Max(column string) (result float64, err error) {
@@ -232,8 +232,10 @@ func (db Database) Update(data any, mustFields ...string) (affectedRows int64, e
 		if err != nil {
 			return
 		}
+		//dbTmp := db
 		//if !db.WhereBuilderNew.Exists {
 		//	//todo 如果没有where条件,使用主键
+		//	dbTmp = db.Where(db.Bindery.PrimaryKey, db.Bindery.PrimaryKeyValue)
 		//}
 		if db.Bindery.PrimaryKey != "" && db.Bindery.PrimaryKeyValue != nil {
 			return db.Table(data).Where(db.Bindery.PrimaryKey, db.Bindery.PrimaryKeyValue).Update(db.Datas[0])
@@ -286,14 +288,14 @@ func (db Database) Decrement(column string, args ...any) (affectedRows int64, er
 	}
 	return db.execute(false, prepare, values...)
 }
-func (db Database) IncrementEach(data map[string]int, extra ...any) (affectedRows int64, err error) {
+func (db Database) IncrementEach(data map[string]any, extra ...any) (affectedRows int64, err error) {
 	prepare, values, err := db.BuildSqlIncrementEach(data, extra...)
 	if err != nil {
 		return affectedRows, err
 	}
 	return db.execute(false, prepare, values...)
 }
-func (db Database) DecrementEach(data map[string]int, extra ...any) (affectedRows int64, err error) {
+func (db Database) DecrementEach(data map[string]any, extra ...any) (affectedRows int64, err error) {
 	prepare, values, err := db.BuildSqlDecrementEach(data, extra...)
 	if err != nil {
 		return affectedRows, err
@@ -301,7 +303,7 @@ func (db Database) DecrementEach(data map[string]int, extra ...any) (affectedRow
 	return db.execute(false, prepare, values...)
 }
 
-func (db Database) Delete(id ...int) (affectedRows int64, err error) {
+func (db Database) Delete(id ...int64) (affectedRows int64, err error) {
 	prepare, values, err := db.BuildSqlDelete(id...)
 	if err != nil {
 		return affectedRows, err
@@ -310,26 +312,76 @@ func (db Database) Delete(id ...int) (affectedRows int64, err error) {
 }
 func (db Database) Truncate(obj ...any) (affectedRows int64, err error) {
 	var table string
+	var dbTmp = db
 	if len(obj) > 0 {
-		table, err = db.Table(obj[0]).BuildTable()
-		if err != nil {
-			return
-		}
+		dbTmp = db.Table(obj[0])
 	}
-	return db.execute(false, "TRUNCATE TABLE %s", table)
+	table, err = dbTmp.BuildTable()
+	if err != nil {
+		return
+	}
+	return db.execute(false, fmt.Sprintf("TRUNCATE TABLE %s", table))
+}
+
+func (db Database) Paginate(obj ...any) (result iface.Paginate, err error) {
+	var count int64
+	dbTmp := db
+	if len(obj) > 0 {
+		dbTmp = db.Table(obj[0])
+	}
+	count, err = dbTmp.Count()
+	if err != nil || count == 0 {
+		return
+	}
+	limit, _, page := db.PageBuilder.GetPagination()
+	if limit == 0 {
+		limit = 15
+	}
+	if page == 0 {
+		page = 1
+	}
+
+	var res []map[string]any
+	res, err = dbTmp.Limit(limit).Page(page).Get()
+	if err != nil {
+		return
+	}
+
+	result.Total = count
+	result.Data = res
+	result.Limit = limit
+	result.Pages = int(math.Ceil(float64(count) / float64(limit)))
+	result.CurrentPage = page
+	result.PrevPage = page - 1
+	result.NextPage = page + 1
+	if page == 1 {
+		result.PrevPage = 1
+	}
+	if page == result.Pages {
+		result.NextPage = result.Pages
+	}
+	return
 }
 
 func (db Database) aggregation(bind any, column string, agg string) (err error) {
-	prepare, values, err2 := db.SelectRaw(fmt.Sprintf("%s(%s) as %s", agg, column, agg)).BuildSqlQuery()
+	//prepare, values, err2 := db.SelectRaw(fmt.Sprintf("%s(%s) as %s", agg, column, agg)).BuildSqlQuery()
+	//if err2 != nil {
+	//	return err2
+	//}
+	segment, err2 := db.BuildTable()
 	if err2 != nil {
 		return err2
 	}
-	return db.queryRow(bind, prepare, values...)
+	prepare := fmt.Sprintf("SELECT %s(%s) as %s FROM %s", agg, column, agg, segment)
+	return db.queryRow(bind, prepare)
 }
 func (db Database) insert(returnLastInsertId, ignore bool, data any, mustFields ...string) (affectedRows int64, err error) {
 	rfv := reflect.Indirect(reflect.ValueOf(data))
 	switch rfv.Kind() {
 	case reflect.Map:
+		if rfv.Len() == 0 {
+			return
+		}
 		var sql4prepare string
 		var values []any
 		if ignore {
@@ -348,6 +400,9 @@ func (db Database) insert(returnLastInsertId, ignore bool, data any, mustFields 
 		}
 		return db.Table(data).insert(returnLastInsertId, ignore, db.Datas, mustFields...)
 	case reflect.Slice:
+		if rfv.Len() == 0 {
+			return
+		}
 		switch rfv.Type().Elem().Kind() {
 		case reflect.Map:
 			var sql4prepare string

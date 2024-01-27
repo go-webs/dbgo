@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/go-webs/dbgo/util"
+	"github.com/sirupsen/logrus"
 )
 
 type DbGo struct {
@@ -63,6 +64,7 @@ func (dg *DbGo) EnableQueryLog(b bool) {
 	dg.enableQueryLog = b
 }
 func (dg *DbGo) recordSqlLog(queryStr string, values ...interface{}) {
+	logrus.Debug("record sql log: "+queryStr, values)
 	if dg.enableQueryLog {
 		dg.SqlLogs = append(dg.SqlLogs, fmt.Sprintf("%s, %v", queryStr, values))
 	}
