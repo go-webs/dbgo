@@ -25,7 +25,7 @@ func db() *Database {
 	return dbg.NewDB()
 }
 
-var dbg2 = Open("mysql", "root:Qx233233!@tcp(rm-bp1149oa09n39n236jo.mysql.rds.aliyuncs.com:3306)/game?charset=utf8mb4&parseTime=true")
+var dbg2 = Open("mysql", "root:123456@tcp(localhost:3306)/game?charset=utf8mb4&parseTime=true")
 
 func db2() *Database {
 	dbg2.EnableQueryLog(true)
