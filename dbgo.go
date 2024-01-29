@@ -2,7 +2,9 @@ package dbgo2
 
 import (
 	"database/sql"
-	"go-webs/dbgo2/iface"
+	"go-webs/dbgo2/drivers"
+	_ "go-webs/dbgo2/drivers/mysql"
+	_ "go-webs/dbgo2/drivers/sqlite3"
 	"go-webs/dbgo2/util"
 )
 
@@ -10,6 +12,8 @@ type DbGo struct {
 	Cluster *ConfigCluster
 	master  []*sql.DB
 	slave   []*sql.DB
+	driver  string
+	prefix  string
 
 	//SqlLogs        []string
 	//enableQueryLog bool
@@ -27,6 +31,8 @@ func Open(conf ...any) *DbGo {
 	switch len(conf) {
 	case 1:
 		if single, ok := conf[0].(*Config); ok {
+			dg.driver = single.Driver
+			dg.prefix = single.Prefix
 			dg.Cluster = &ConfigCluster{WriteConf: []Config{*single}}
 			if single == nil { // build sql only
 				//dg.ConfigCluster = &ConfigCluster{Prefix: "test_"}
@@ -34,6 +40,8 @@ func Open(conf ...any) *DbGo {
 			}
 			dg.master, dg.slave = dg.Cluster.init()
 		} else if cluster, ok := conf[0].(*ConfigCluster); ok {
+			dg.driver = cluster.WriteConf[0].Driver
+			dg.prefix = cluster.WriteConf[0].Prefix
 			dg.Cluster = cluster
 			if cluster == nil { // build sql only
 				//dg.ConfigCluster = &ConfigCluster{Prefix: "test_"}
@@ -42,7 +50,8 @@ func Open(conf ...any) *DbGo {
 			dg.master, dg.slave = dg.Cluster.init()
 		}
 	case 2:
-		db, err := sql.Open(conf[0].(string), conf[1].(string))
+		dg.driver = conf[0].(string)
+		db, err := sql.Open(dg.driver, conf[1].(string))
 		if err != nil {
 			panic(err.Error())
 		}
@@ -75,41 +84,47 @@ func (dg *DbGo) SlaveDB() *sql.DB {
 //	return dg.SlaveDB().QueryRow(query, args...)
 //}
 
-func (dg *DbGo) QueryRow(query string, args ...any) *sql.Row {
-	return dg.SlaveDB().QueryRow(query, args...)
-}
-func (dg *DbGo) Query(query string, args ...any) (*sql.Rows, error) {
-	return dg.SlaveDB().Query(query, args...)
-}
-func (dg *DbGo) Exec(query string, args ...any) (sql.Result, error) {
-	return dg.MasterDB().Exec(query, args...)
-}
-func (dg *DbGo) Begin() (*sql.Tx, error) {
-	return dg.MasterDB().Begin()
-}
-func (dg *DbGo) Trans(closer ...func(*sql.Tx) error) error {
-	var tx, err = dg.MasterDB().Begin()
-	if err != nil {
-		return err
-	}
-	for _, v := range closer {
-		err = v(tx)
-		if err != nil {
-			return tx.Rollback()
-		}
-	}
-	return tx.Commit()
-}
+//func (dg *DbGo) QueryRow(query string, args ...any) *sql.Row {
+//	return dg.SlaveDB().QueryRow(query, args...)
+//}
+//func (dg *DbGo) Query(query string, args ...any) (*sql.Rows, error) {
+//	return dg.SlaveDB().Query(query, args...)
+//}
+//func (dg *DbGo) Exec(query string, args ...any) (sql.Result, error) {
+//	return dg.MasterDB().Exec(query, args...)
+//}
+//func (dg *DbGo) Begin() (*sql.Tx, error) {
+//	return dg.MasterDB().Begin()
+//}
+//func (dg *DbGo) Trans(closer ...func(*sql.Tx) error) error {
+//	var tx, err = dg.MasterDB().Begin()
+//	if err != nil {
+//		return err
+//	}
+//	for _, v := range closer {
+//		err = v(tx)
+//		if err != nil {
+//			return tx.Rollback()
+//		}
+//	}
+//	return tx.Commit()
+//}
 
-type HandlerFunc func(*iface.Context)
+type HandlerFunc func(*drivers.Context)
 
 func (dg *DbGo) Use(h ...HandlerFunc) *DbGo {
 	dg.handlers = append(dg.handlers, h...)
 	return dg
 }
 
-func (dg *DbGo) NewSession(master *sql.DB, slave *sql.DB) *Session {
-	return &Session{master, slave, nil, 0}
+func (dg *DbGo) NewDatabase() Database {
+	return NewDatabase(dg)
+}
+
+func (dg *DbGo) NewSession() *Session {
+	master := dg.MasterDB()
+	slave := dg.SlaveDB()
+	return NewSession(master, slave)
 }
 
 //func (dg *DbGo) Transaction() error {

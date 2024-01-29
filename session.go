@@ -13,6 +13,10 @@ type Session struct {
 	autoSavePoint uint8
 }
 
+func NewSession(master, slave *sql.DB) *Session {
+	return &Session{master, slave, nil, 0}
+}
+
 func (t *Session) Exec(query string, args ...any) (sql.Result, error) {
 	if t.tx != nil {
 		return t.tx.Exec(query, args...)
@@ -73,12 +77,6 @@ func (t *Session) Trans(closer ...func(*Session) error) (err error) {
 	}
 	return t.Commit()
 }
-
-//	if err = t.Begin(); err != nil {
-//		return
-//	}
-//
-//}
 
 func (t *Session) Query(query string, args ...any) (*sql.Rows, error) {
 	if t.tx != nil {
