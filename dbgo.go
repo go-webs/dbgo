@@ -2,9 +2,6 @@ package dbgo2
 
 import (
 	"database/sql"
-	"go-webs/dbgo2/drivers"
-	_ "go-webs/dbgo2/drivers/mysql"
-	_ "go-webs/dbgo2/drivers/sqlite3"
 	"go-webs/dbgo2/util"
 )
 
@@ -19,6 +16,13 @@ type DbGo struct {
 	//enableQueryLog bool
 	//Error          error
 	handlers []HandlerFunc
+}
+
+type HandlerFunc func(*Context)
+
+func (dg *DbGo) Use(h ...HandlerFunc) *DbGo {
+	dg.handlers = append(dg.handlers, h...)
+	return dg
 }
 
 // Open db
@@ -71,6 +75,9 @@ func (dg *DbGo) SlaveDB() *sql.DB {
 	}
 	return dg.slave[util.GetRandomInt(len(dg.slave))]
 }
+func (dg *DbGo) Driver() IDriver {
+	return GetDriver(dg.driver)
+}
 
 //func (dg *DbGo) NewDB() *Database {
 //	return newDatabase(dg)
@@ -109,13 +116,6 @@ func (dg *DbGo) SlaveDB() *sql.DB {
 //	}
 //	return tx.Commit()
 //}
-
-type HandlerFunc func(*drivers.Context)
-
-func (dg *DbGo) Use(h ...HandlerFunc) *DbGo {
-	dg.handlers = append(dg.handlers, h...)
-	return dg
-}
 
 func (dg *DbGo) NewDatabase() Database {
 	return NewDatabase(dg)

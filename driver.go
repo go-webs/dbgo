@@ -1,4 +1,4 @@
-package drivers
+package dbgo2
 
 import (
 	"sync"

@@ -192,3 +192,11 @@ func SortedMapKeys(data any) (cols []string) {
 	}
 	return
 }
+
+func IsExpression(obj any) (b bool) {
+	rfv := reflect.Indirect(reflect.ValueOf(obj))
+	if rfv.Kind() == reflect.String && strings.Contains(rfv.String(), "?") {
+		b = true
+	}
+	return
+}

@@ -126,10 +126,10 @@ func (t *Session) rowsToBind(rows *sql.Rows, bind any) (err error) {
 //		FieldsTag []string
 //		FieldsStruct []string
 //	}
-type binders struct {
-	FieldTag    string
-	FieldStruct string
-}
+//type binders struct {
+//	FieldTag    string
+//	FieldStruct string
+//}
 
 func parseBindStruct() (FieldTag []string, FieldStruct []string) {
 	return
