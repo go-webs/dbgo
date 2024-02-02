@@ -4,11 +4,7 @@ import (
 	"sync"
 )
 
-type IDriver interface {
-	ToSql(ctx *Context) (sql4prepare string, binds []any, err error)
-}
-
-var driverMap map[string]IDriver
+var driverMap = map[string]IDriver{}
 var driverLock sync.RWMutex
 
 func Register(driver string, parser IDriver) {
@@ -19,6 +15,6 @@ func Register(driver string, parser IDriver) {
 
 func GetDriver(driver string) IDriver {
 	driverLock.RLock()
-	defer driverLock.Unlock()
+	defer driverLock.RUnlock()
 	return driverMap[driver]
 }

@@ -573,4 +573,4 @@ type JoinClause struct {
 
 // ExampleUsage:
 // qb := NewQueryBuilder()
-// records, err := qb.Table("users").Select("name", "email").Where("age", ">=", 18).OrderBy("name", "asc").Get()
+// records, err := qb.Tables("users").Select("name", "email").Where("age", ">=", 18).OrderBy("name", "asc").Get()

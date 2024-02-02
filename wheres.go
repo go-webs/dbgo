@@ -2,7 +2,6 @@ package dbgo2
 
 import (
 	"errors"
-	"go-webs/dbgo2/util"
 	"reflect"
 	"slices"
 	"strings"
@@ -16,7 +15,7 @@ func (w *WhereClause) addTypeWhereRaw(boolean string, value string, bindings []a
 	return w
 }
 func (w *WhereClause) addTypeWhereNested(boolean string, value func(where IWhere)) *WhereClause {
-	w.Conditions = append(w.Conditions, TypeWhereNested{LogicalOp: boolean, Nested: value})
+	w.Conditions = append(w.Conditions, TypeWhereNested{LogicalOp: boolean, Column: value})
 	return w
 }
 func (w *WhereClause) addTypeWhereSubQuery(boolean string, column string, operator string, value IBuilder) *WhereClause {
@@ -35,57 +34,6 @@ func (w *WhereClause) addTypeWhereStandard(boolean string, column string, operat
 	w.Conditions = append(w.Conditions, TypeWhereStandard{LogicalOp: boolean, Column: column, Operator: operator, Value: value})
 	return w
 }
-
-//func (w *WhereClause) BuildWhere() (sql4prepare string, values []any, err error) {
-//	if w.err != nil {
-//		return sql4prepare, values, w.err
-//	}
-//	if len(w.Conditions) > 0 {
-//		w.Exists = true
-//	}
-//
-//	var sql4prepareArr []string
-//	for _, v := range w.Conditions {
-//		switch v.(type) {
-//		case typeWhereRaw:
-//			item := v.(typeWhereRaw)
-//			sql4prepareArr = append(sql4prepareArr, fmt.Sprintf("%s %s", item.boolean, item.column))
-//			values = append(values, item.bindings...)
-//		case typeWhereNested:
-//			item := v.(typeWhereNested)
-//			var tmp = NewWhereBuilderNew()
-//			item.column(tmp)
-//			prepare, anies, err := tmp.BuildWhere()
-//			if err != nil {
-//				return sql4prepare, values, err
-//			}
-//			sql4prepareArr = append(sql4prepareArr, fmt.Sprintf("%s (%s)", item.boolean, prepare))
-//			values = append(values, anies...)
-//		case typeWhereSubQuery:
-//			item := v.(typeWhereSubQuery)
-//			query, anies, err := item.value.BuildSqlQuery()
-//			if err != nil {
-//				return sql4prepare, values, err
-//			}
-//			sql4prepareArr = append(sql4prepareArr, fmt.Sprintf("%s %s %s (%s)", item.boolean, util.BackQuotes(item.column), item.operator, query))
-//			values = append(values, anies...)
-//		case typeWhereStandard:
-//			item := v.(typeWhereStandard)
-//			sql4prepareArr = append(sql4prepareArr, fmt.Sprintf("%s %s %s ?", item.boolean, util.BackQuotes(item.column), item.operator))
-//			values = append(values, item.value)
-//		case typeWhereIn:
-//			item := v.(typeWhereIn)
-//			sql4prepareArr = append(sql4prepareArr, fmt.Sprintf("%s %s %s (%s)", item.boolean, util.BackQuotes(item.column), item.operator, strings.Repeat("?,", len(item.value)-1)+"?"))
-//			values = append(values, item.value...)
-//		case typeWhereBetween:
-//			item := v.(typeWhereBetween)
-//			sql4prepareArr = append(sql4prepareArr, fmt.Sprintf("%s %s %s ? AND ?", item.boolean, util.BackQuotes(item.column), item.operator))
-//			values = append(values, item.value...)
-//		}
-//	}
-//	sql4prepare = strings.TrimSpace(strings.Trim(strings.Trim(strings.TrimSpace(strings.Join(sql4prepareArr, " ")), "AND"), "OR"))
-//	return
-//}
 
 // WhereRaw Add a raw where clause to the query.
 //
@@ -187,54 +135,51 @@ func (w *WhereClause) where(boolean string, column any, args ...any) IWhere {
 			if fn, ok := column.(func(where IWhere)); ok {
 				w.addTypeWhereNested(boolean, fn)
 			} else {
-				w.err = errors.New("not supported where params")
+				w.Err = errors.New("not supported where params")
 			}
 		case reflect.String:
-			return w.WhereRaw(rfv.String())
+			return w.whereRaw(boolean, rfv.String())
 		case reflect.Slice:
 			if rfv.Len() > 1 {
 				rfvItem := rfv.Index(0)
 				if rfvItem.Kind() == reflect.Slice {
-					for i := 0; i < rfv.Len(); i++ {
-						w.Where(rfv.Index(i).Interface())
-					}
+					return w.where(boolean, rfvItem.Interface())
 				} else {
 					var tmp []any
 					for i := 0; i < rfv.Len(); i++ {
 						tmp = append(tmp, rfv.Index(i).Interface())
 					}
-					w.Where(tmp[0], tmp[1:]...)
+					return w.where(boolean, tmp[0], tmp[1:]...)
 				}
 			} else if rfv.Len() > 0 {
-				return w.WhereRaw(rfv.Index(0).String())
+				return w.whereRaw(boolean, rfv.Index(0).String())
 			}
-			w.err = errors.New("not supported where params")
+			w.Err = errors.New("not supported where params")
 		default:
-			w.err = errors.New("not supported where params")
-			return w
+			w.Err = errors.New("not supported where params")
 		}
 	case 1:
-		if util.IsExpression(column) {
+		if IsExpression(column) {
 			return w.whereRaw(boolean, column.(string), args...)
 		}
-		return w.Where(column, "=", args[0], boolean)
+		return w.where(boolean, column, "=", args[0], boolean)
 	case 2:
-		return w.Where(column, args[0], args[1], boolean)
+		return w.where(boolean, column, args[0], args[1], boolean)
 	case 3:
 		rfv := reflect.Indirect(reflect.ValueOf(args[1]))
 		if rfv.Kind() == reflect.Slice { // in/between
 			var operators = []string{"in", "not in"}
 			if slices.Contains(operators, strings.ToLower(args[0].(string))) {
-				val := util.ToSlice(args[1])
+				val := ToSlice(args[1])
 				if len(val) > 0 {
-					w.addTypeWhereIn(args[2].(string), column.(string), args[0].(string), util.ToSlice(args[1]))
+					w.addTypeWhereIn(args[2].(string), column.(string), args[0].(string), ToSlice(args[1]))
 				}
 			}
 			operators = []string{"between", "not between"}
 			if slices.Contains(operators, strings.ToLower(args[0].(string))) {
-				val := util.ToSlice(args[1])
+				val := ToSlice(args[1])
 				if len(val) > 0 {
-					w.addTypeWhereBetween(args[2].(string), column.(string), args[0].(string), util.ToSlice(args[1]))
+					w.addTypeWhereBetween(args[2].(string), column.(string), args[0].(string), ToSlice(args[1]))
 				}
 			}
 		} else if builder, ok := args[1].(IBuilder); ok {
@@ -243,7 +188,7 @@ func (w *WhereClause) where(boolean string, column any, args ...any) IWhere {
 			w.addTypeWhereStandard(args[2].(string), column.(string), args[0].(string), args[1])
 		}
 	default:
-		w.err = errors.New("not supported where params")
+		w.Err = errors.New("not supported where params")
 	}
 	return w
 }

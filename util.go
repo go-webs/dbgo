@@ -1,4 +1,4 @@
-package util
+package dbgo2
 
 import (
 	"database/sql"
@@ -10,6 +10,39 @@ import (
 	"strings"
 	"time"
 )
+
+func init() {
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+}
+func GetRandomInt(num int) int {
+	return rand.Intn(num)
+}
+func GetRandomWeightedIndex(weights []int) int {
+	if len(weights) == 0 {
+		return 0
+	}
+	if len(weights) == 1 {
+		return 0
+	}
+	totalWeight := 0
+	for _, w := range weights {
+		totalWeight += w
+	}
+	if totalWeight == 0 {
+		return rand.Intn(len(weights))
+	}
+
+	rnd := rand.Intn(totalWeight)
+
+	currentWeight := 0
+	for i, w := range weights {
+		currentWeight += w
+		if rnd < currentWeight {
+			return i
+		}
+	}
+	return -1 // 如果权重都为 0，或者总权重为 0，则返回 -1
+}
 
 //////////// struct field ptr 4 orm helpers ////////////
 
@@ -113,38 +146,6 @@ func SliceContains(haystack []string, needle string) bool {
 		}
 	}
 	return false
-}
-func init() {
-	rand.New(rand.NewSource(time.Now().UnixNano()))
-}
-func GetRandomInt(num int) int {
-	return rand.Intn(num)
-}
-func GetRandomWeightedIndex(weights []int) int {
-	if len(weights) == 0 {
-		return 0
-	}
-	if len(weights) == 1 {
-		return 0
-	}
-	totalWeight := 0
-	for _, w := range weights {
-		totalWeight += w
-	}
-	if totalWeight == 0 {
-		return rand.Intn(len(weights))
-	}
-
-	rnd := rand.Intn(totalWeight)
-
-	currentWeight := 0
-	for i, w := range weights {
-		currentWeight += w
-		if rnd < currentWeight {
-			return i
-		}
-	}
-	return -1 // 如果权重都为 0，或者总权重为 0，则返回 -1
 }
 func Map[Data any, Datas ~[]Data, Result any](datas Datas, mapper func(Data) Result) []Result {
 	results := make([]Result, 0, len(datas))

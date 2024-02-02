@@ -21,7 +21,7 @@ type ConfigCluster struct {
 	ReadConf  []Config
 }
 
-type ConfigMulti map[string]ConfigCluster
+//type ConfigMulti map[string]ConfigCluster
 
 func (c ConfigCluster) init() (master []*sql.DB, slave []*sql.DB) {
 	if len(c.WriteConf) > 0 {

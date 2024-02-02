@@ -2,7 +2,6 @@ package dbgo2
 
 import (
 	"database/sql"
-	"go-webs/dbgo2/util"
 )
 
 type DbGo struct {
@@ -52,6 +51,8 @@ func Open(conf ...any) *DbGo {
 				return &dg
 			}
 			dg.master, dg.slave = dg.Cluster.init()
+		} else {
+			dg.driver = "mysql" // for toSql test
 		}
 	case 2:
 		dg.driver = conf[0].(string)
@@ -67,13 +68,19 @@ func Open(conf ...any) *DbGo {
 }
 
 func (dg *DbGo) MasterDB() *sql.DB {
-	return dg.master[util.GetRandomInt(len(dg.master))]
+	if len(dg.master) == 0 {
+		return nil
+	}
+	return dg.master[GetRandomInt(len(dg.master))]
 }
 func (dg *DbGo) SlaveDB() *sql.DB {
 	if len(dg.slave) == 0 {
+		return nil
+	}
+	if len(dg.slave) == 0 {
 		return dg.MasterDB()
 	}
-	return dg.slave[util.GetRandomInt(len(dg.slave))]
+	return dg.slave[GetRandomInt(len(dg.slave))]
 }
 func (dg *DbGo) Driver() IDriver {
 	return GetDriver(dg.driver)
@@ -84,7 +91,7 @@ func (dg *DbGo) Driver() IDriver {
 //}
 
 //func (dg *DbGo) queryRow(db *sql.DB, query string, args ...any) *sql.Row {
-//	prepare, err := db.Prepare(query)
+//	prepare, Err := db.Prepare(query)
 //	return dg.SlaveDB().QueryRow(query, args...)
 //}
 //func (dg *DbGo) QueryRow(query string, args ...any) *sql.Row {
@@ -104,13 +111,13 @@ func (dg *DbGo) Driver() IDriver {
 //	return dg.MasterDB().Begin()
 //}
 //func (dg *DbGo) Trans(closer ...func(*sql.Tx) error) error {
-//	var tx, err = dg.MasterDB().Begin()
-//	if err != nil {
-//		return err
+//	var tx, Err = dg.MasterDB().Begin()
+//	if Err != nil {
+//		return Err
 //	}
 //	for _, v := range closer {
-//		err = v(tx)
-//		if err != nil {
+//		Err = v(tx)
+//		if Err != nil {
 //			return tx.Rollback()
 //		}
 //	}
@@ -128,9 +135,9 @@ func (dg *DbGo) NewSession() *Session {
 }
 
 //func (dg *DbGo) Transaction() error {
-//	tx, err := dg.Begin()
-//	if err != nil {
-//		return err
+//	tx, Err := dg.Begin()
+//	if Err != nil {
+//		return Err
 //	}
 //}
 

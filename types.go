@@ -1,8 +1,24 @@
 package dbgo2
 
+type Context struct {
+	SelectClause
+	TableClause
+	JoinClause
+	WhereClause
+	HavingClause
+	OrderByClause
+	LimitOffsetClause
+	Groups []string
+
+	Prefix   string
+	Queries  string
+	Bindings []any
+	Err      error
+}
+
 type TableClause struct {
-	Table any // table name or struct(slice)
-	Alias string
+	Tables any // table name or struct(slice) or subQuery
+	Alias  string
 }
 
 // Column 表示SELECT语句中的列信息。
@@ -19,15 +35,15 @@ type SelectClause struct {
 	Distinct bool
 }
 
-// Condition 用于表示WHERE或HAVING子句中的单个条件。
-type Condition struct {
-	Column    string
-	Value     interface{}
-	Operator  string   // = > <...
-	LogicalOp string   // "AND" 或 "OR"
-	Not       bool     // 是否取反操作
-	SubQuery  Database // 若条件是一个子查询，则存储该子查询
-}
+//// Condition 用于表示WHERE或HAVING子句中的单个条件。
+//type Condition struct {
+//	Column    string
+//	Value     interface{}
+//	Operator  string   // = > <...
+//	LogicalOp string   // "AND" 或 "OR"
+//	Not       bool     // 是否取反操作
+//	SubQuery  Database // 若条件是一个子查询，则存储该子查询
+//}
 
 // JoinClause 描述JOIN操作。
 type JoinClause struct {
@@ -79,7 +95,7 @@ type HavingClause struct {
 // WhereClause 存储所有WHERE条件。
 type WhereClause struct {
 	Conditions []any
-	err        error
+	Err        error
 }
 type TypeWhereRaw struct {
 	LogicalOp string
@@ -90,7 +106,7 @@ type TypeWhereRaw struct {
 type TypeWhereNested struct {
 	LogicalOp string
 	Not       bool
-	Nested    func(where IWhere)
+	Column    func(where IWhere)
 }
 type TypeWhereSubQuery struct {
 	LogicalOp string

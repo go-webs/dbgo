@@ -26,14 +26,7 @@ func (db Database) Distinct() Database {
 
 // Table sets the table name for the query.
 func (db Database) Table(table any, alias ...string) Database {
-	var as string
-	if len(alias) > 0 {
-		as = alias[0]
-	}
-	db.TableClause = TableClause{
-		Table: table,
-		Alias: as,
-	}
+	db.Context.Table(table, alias...)
 	return db
 }
 
@@ -107,7 +100,7 @@ func (db Database) SelectRaw(raw string, binds ...any) Database {
 //	Where(["id",1])
 //	Where([ ["id",1],["name","=","John"],["age",">",3] ])
 func (db Database) Where(column any, argsOrCloser ...any) Database {
-	db.WhereClause.Where(column, argsOrCloser)
+	db.WhereClause.Where(column, argsOrCloser...)
 	return db
 }
 
@@ -169,10 +162,13 @@ func (db Database) Page(num int) Database {
 	return db
 }
 
-func (db Database) Get() (res []map[string]any, err error) {
+// Get 获取查询结果集。
+//
+// columns: 要获取的列名数组，如果不提供，则获取所有列。
+func (db Database) Get(columns ...string) (res []map[string]any, err error) {
 	var prepare string
 	var binds []any
-	prepare, binds, err = db.Driver().ToSql(db.Context)
+	prepare, binds, err = db.Select(columns...).Driver().ToSql(db.Context)
 	if err != nil {
 		return
 	}

@@ -122,18 +122,6 @@ func (t *Session) rowsToBind(rows *sql.Rows, bind any) (err error) {
 	}
 }
 
-//	type binders struct {
-//		FieldsTag []string
-//		FieldsStruct []string
-//	}
-//type binders struct {
-//	FieldTag    string
-//	FieldStruct string
-//}
-
-func parseBindStruct() (FieldTag []string, FieldStruct []string) {
-	return
-}
 func (t *Session) rowsToStruct(rows *sql.Rows, rfv reflect.Value) error {
 	FieldTag, FieldStruct := parseBindStruct()
 
@@ -208,6 +196,7 @@ func (t *Session) rowsToMapSingle(rows *sql.Rows, columns []string, count int) (
 	}
 	return
 }
+
 func (t *Session) rowsToMap(rows *sql.Rows, rfv reflect.Value) error {
 	defer rows.Close()
 
@@ -231,4 +220,17 @@ func (t *Session) rowsToMap(rows *sql.Rows, rfv reflect.Value) error {
 		}
 	}
 	return nil
+}
+
+//	type binders struct {
+//		FieldsTag []string
+//		FieldsStruct []string
+//	}
+//type binders struct {
+//	FieldTag    string
+//	FieldStruct string
+//}
+
+func parseBindStruct() (FieldTag []string, FieldStruct []string) {
+	return
 }
