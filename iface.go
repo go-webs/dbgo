@@ -35,6 +35,9 @@ type IBuilder interface {
 	ToSqlWhere() (sql4prepare string, values []any, err error)
 	ToSqlOrderBy() (sql4prepare string)
 	ToSqlLimitOffset() (sqlSegment string, binds []any)
+	ToSqlInsert(obj any, mustFields ...string) (sqlSegment string, binds []any, err error)
+	ToSqlUpdate(obj any, mustFields ...string) (sqlSegment string, binds []any, err error)
+	ToSqlDelete(obj any) (sqlSegment string, binds []any, err error)
 }
 
 type IDriver interface {
@@ -44,4 +47,7 @@ type IDriver interface {
 	ToSqlWhere(w *Context) (sql4prepare string, values []any, err error)
 	ToSqlOrderBy(c *Context) (sql4prepare string)
 	ToSqlLimitOffset(c *Context) (sqlSegment string, binds []any)
+	ToSqlInsert(c *Context, obj any, mustFields ...string) (sqlSegment string, binds []any, err error)
+	ToSqlUpdate(c *Context, obj any, mustFields ...string) (sqlSegment string, binds []any, err error)
+	ToSqlDelete(c *Context, obj any) (sqlSegment string, binds []any, err error)
 }

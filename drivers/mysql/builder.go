@@ -171,50 +171,50 @@ func (b Builder) ToSqlLimitOffset(c *dbgo2.Context) (sqlSegment string, binds []
 	return
 }
 
-func (b Builder) ToSqlInsert(c *dbgo2.Context, data any, mustFields ...string) (sqlSegment string, binds []any, err error) {
-	rfv := reflect.Indirect(reflect.ValueOf(data))
+func (b Builder) ToSqlInsert(c *dbgo2.Context, obj any, mustFields ...string) (sqlSegment string, binds []any, err error) {
+	rfv := reflect.Indirect(reflect.ValueOf(obj))
 	switch rfv.Kind() {
 	case reflect.Struct:
 		var datas []map[string]any
-		datas, err = dbgo2.StructsToInsert(data, mustFields...)
+		datas, err = dbgo2.StructsToInsert(obj, mustFields...)
 		if err != nil {
 			return
 		}
-		c.Table(data)
+		c.Table(obj)
 		return b.toSqlInsert(c, datas, "")
 	case reflect.Slice:
 		switch rfv.Type().Elem().Kind() {
 		case reflect.Struct:
-			c.Table(data)
+			c.Table(obj)
 			var datas []map[string]any
-			datas, err = dbgo2.StructsToInsert(data, mustFields...)
+			datas, err = dbgo2.StructsToInsert(obj, mustFields...)
 			if err != nil {
 				return
 			}
 			return b.toSqlInsert(c, datas, "")
 		default:
-			return b.toSqlInsert(c, data, "")
+			return b.toSqlInsert(c, obj, "")
 		}
 	default:
-		return b.toSqlInsert(c, data, "")
+		return b.toSqlInsert(c, obj, "")
 	}
 }
 
-func (b Builder) ToSqlUpdate(c *dbgo2.Context, data any, mustFields ...string) (sqlSegment string, binds []any, err error) {
-	rfv := reflect.Indirect(reflect.ValueOf(data))
+func (b Builder) ToSqlUpdate(c *dbgo2.Context, obj any, mustFields ...string) (sqlSegment string, binds []any, err error) {
+	rfv := reflect.Indirect(reflect.ValueOf(obj))
 	switch rfv.Kind() {
 	case reflect.Struct:
-		dataMap, pk, pkValue, err := dbgo2.StructToUpdate(data, mustFields...)
+		dataMap, pk, pkValue, err := dbgo2.StructToUpdate(obj, mustFields...)
 		if err != nil {
 			return sqlSegment, binds, err
 		}
-		c.Table(data)
+		c.Table(obj)
 		if pk != "" {
 			c.Where(pk, pkValue)
 		}
 		return b.toSqlUpdate(c, dataMap)
 	default:
-		return b.toSqlUpdate(c, data)
+		return b.toSqlUpdate(c, obj)
 	}
 }
 

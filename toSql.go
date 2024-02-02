@@ -23,3 +23,15 @@ func (db Database) ToSqlOrderBy() (sql4prepare string) {
 func (db Database) ToSqlLimitOffset() (sqlSegment string, binds []any) {
 	return db.Driver().ToSqlLimitOffset(db.Context)
 }
+
+func (db Database) ToSqlInsert(obj any, mustFields ...string) (sqlSegment string, binds []any, err error) {
+	return db.Driver().ToSqlInsert(db.Context, obj, mustFields...)
+}
+
+func (db Database) ToSqlUpdate(obj any, mustFields ...string) (sqlSegment string, binds []any, err error) {
+	return db.Driver().ToSqlUpdate(db.Context, obj, mustFields...)
+}
+
+func (db Database) ToSqlDelete(obj any) (sqlSegment string, binds []any, err error) {
+	return db.Driver().ToSqlDelete(db.Context, obj)
+}
