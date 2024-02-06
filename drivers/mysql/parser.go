@@ -13,7 +13,7 @@ func (b Builder) buildTableName(rft reflect.Type, prefix string) (tab string) {
 	return BackQuotes(fmt.Sprintf("%s%s", prefix, dbgo2.StructsToTableName(rft)))
 }
 
-func (b Builder) toSqlInsert(c *dbgo2.Context, data any, ignoreCase string, onDuplicateKeys ...string) (sql4prepare string, values []any, err error) {
+func (b Builder) toSqlInsert(c *dbgo2.Context, data any, ignoreCase string, onDuplicateKeys []string) (sql4prepare string, values []any, err error) {
 	rfv := reflect.Indirect(reflect.ValueOf(data))
 	var fields []string
 	var valuesPlaceholderArr []string
@@ -63,10 +63,13 @@ func (b Builder) toSqlInsert(c *dbgo2.Context, data any, ignoreCase string, onDu
 	if err != nil {
 		return
 	}
-	var onDuplicateKey string
-	if len(onDuplicateKeys) > 0 {
-		onDuplicateKey = onDuplicateKeys[0]
+
+	var tmp []string
+	for _, v := range onDuplicateKeys {
+		tmp = append(tmp, fmt.Sprintf("%s=VALUES(%s)", BackQuotes(v), BackQuotes(v)))
 	}
+	onDuplicateKey := fmt.Sprintf("ON DUPLICATE KEY UPDATE %s", strings.Join(tmp, ", "))
+
 	var tables string
 	tables, _, err = b.ToSqlTable(c)
 	if err != nil {

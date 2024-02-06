@@ -24,23 +24,48 @@ func (b Builder) ToSql(c *dbgo2.Context) (sql4prepare string, binds []any, err e
 	if err != nil {
 		return sql4prepare, binds2, err
 	}
-	joins, binds5, err := b.ToSqlJoin(c)
+	joins, binds3, err := b.ToSqlJoin(c)
 	if err != nil {
-		return sql4prepare, binds5, err
+		return sql4prepare, binds3, err
 	}
-	where, binds3, err := b.ToSqlWhere(c)
+	wheres, binds4, err := b.ToSqlWhere(c)
 	if err != nil {
-		return sql4prepare, binds2, err
+		return sql4prepare, binds4, err
 	}
 	orderBy := b.ToSqlOrderBy(c)
-	limit, binds4 := b.ToSqlLimitOffset(c)
+	limit, binds5 := b.ToSqlLimitOffset(c)
+	groupBys := b.ToSqlGroupBy(c)
+	havings, binds6, err := b.ToSqlHaving(c)
 
 	binds = append(binds, anies...)
+	binds = append(binds, binds2...)
 	binds = append(binds, binds3...)
 	binds = append(binds, binds4...)
 	binds = append(binds, binds5...)
+	binds = append(binds, binds6...)
 
-	sql4prepare = NamedSprintf("SELECT :selects FROM :table :join :where :orderBy :pagination", selects, table, joins, where, orderBy, limit)
+	sql4prepare = NamedSprintf("SELECT :selects FROM :table :join :wheres :groupBys :havings :orderBy :pagination", selects, table, joins, wheres, groupBys, havings, orderBy, limit)
+	return
+}
+
+func (b Builder) ToSqlIncDec(c *dbgo2.Context, symbol string, data map[string]any) (sql4prepare string, values []any, err error) {
+	prepare, anies, err := b.ToSqlTable(c)
+	if err != nil {
+		return sql4prepare, values, err
+	}
+	where, val, err := b.ToSqlWhere(c)
+	if err != nil {
+		return sql4prepare, values, err
+	}
+	values = append(values, anies...)
+	values = append(values, val...)
+
+	var tmp []string
+	for k, v := range data {
+		tmp = append(tmp, fmt.Sprintf("%s=%s%s?", BackQuotes(k), BackQuotes(k), symbol))
+		values = append(values, v)
+	}
+	sql4prepare = fmt.Sprintf("UPDATE %s SET %s %s", prepare, strings.Join(tmp, ","), where)
 	return
 }
 
@@ -94,12 +119,12 @@ func (b Builder) buildSqlTable(tab dbgo2.TableClause, prefix string) (sql4prepar
 	return strings.TrimSpace(fmt.Sprintf("%s %s", sql4prepare, tab.Alias)), binds, err
 }
 
-func (b Builder) ToSqlWhere(c *dbgo2.Context) (sql4prepare string, binds []any, err error) {
-	if len(c.WhereClause.Conditions) == 0 {
+func (b Builder) toSqlWhere(wc dbgo2.WhereClause) (sql4prepare string, binds []any, err error) {
+	if len(wc.Conditions) == 0 {
 		return
 	}
 	var sql4prepareArr []string
-	for _, v := range c.Conditions {
+	for _, v := range wc.Conditions {
 		switch v.(type) {
 		case dbgo2.TypeWhereRaw:
 			item := v.(dbgo2.TypeWhereRaw)
@@ -140,8 +165,14 @@ func (b Builder) ToSqlWhere(c *dbgo2.Context) (sql4prepare string, binds []any, 
 		}
 	}
 	if len(sql4prepareArr) > 0 {
-		whereTmp := strings.TrimSpace(strings.Trim(strings.Trim(strings.TrimSpace(strings.Join(sql4prepareArr, " ")), "AND"), "OR"))
-		sql4prepare = fmt.Sprintf("WHERE %s", whereTmp)
+		sql4prepare = strings.TrimSpace(strings.Trim(strings.Trim(strings.TrimSpace(strings.Join(sql4prepareArr, " ")), "AND"), "OR"))
+	}
+	return
+}
+func (b Builder) ToSqlWhere(c *dbgo2.Context) (sql4prepare string, binds []any, err error) {
+	sql4prepare, binds, err = b.toSqlWhere(c.WhereClause)
+	if sql4prepare != "" {
+		sql4prepare = fmt.Sprintf("WHERE %s", sql4prepare)
 	}
 	return
 }
@@ -184,16 +215,35 @@ func (b Builder) ToSqlJoin(c *dbgo2.Context) (sql4prepare string, binds []any, e
 	return
 }
 
+func (b Builder) ToSqlGroupBy(c *dbgo2.Context) (sql4prepare string) {
+	if len(c.Groups) > 0 {
+		sql4prepare = fmt.Sprintf("GROUP BY %s", strings.Join(Map[string, []string, string](c.Groups, func(s string) string {
+			return BackQuotes(s)
+		}), ","))
+	}
+	return
+}
+func (b Builder) ToSqlHaving(c *dbgo2.Context) (sql4prepare string, binds []any, err error) {
+	sql4prepare, binds, err = b.toSqlWhere(c.HavingClause.WhereClause)
+	if sql4prepare != "" {
+		sql4prepare = fmt.Sprintf("HAVING %s", sql4prepare)
+	}
+	return
+}
 func (b Builder) ToSqlOrderBy(c *dbgo2.Context) (sql4prepare string) {
 	if len(c.OrderByClause.Columns) == 0 {
 		return
 	}
 	var orderBys []string
 	for _, v := range c.OrderByClause.Columns {
-		if v.Direction == "" {
-			orderBys = append(orderBys, BackQuotes(v.Column))
+		if v.IsRaw {
+			orderBys = append(orderBys, v.Column)
 		} else {
-			orderBys = append(orderBys, fmt.Sprintf("%s %s", BackQuotes(v.Column), v.Direction))
+			if v.Direction == "" {
+				orderBys = append(orderBys, BackQuotes(v.Column))
+			} else {
+				orderBys = append(orderBys, fmt.Sprintf("%s %s", BackQuotes(v.Column), v.Direction))
+			}
 		}
 	}
 	sql4prepare = fmt.Sprintf("ORDER BY %s", strings.Join(orderBys, ", "))
@@ -219,7 +269,7 @@ func (b Builder) ToSqlLimitOffset(c *dbgo2.Context) (sqlSegment string, binds []
 	return
 }
 
-func (b Builder) ToSqlInsert(c *dbgo2.Context, obj any, mustFields ...string) (sqlSegment string, binds []any, err error) {
+func (b Builder) ToSqlInsert(c *dbgo2.Context, obj any, ignoreCase string, onDuplicateKeys []string, mustFields ...string) (sqlSegment string, binds []any, err error) {
 	var ctx = *c
 	rfv := reflect.Indirect(reflect.ValueOf(obj))
 	switch rfv.Kind() {
@@ -230,7 +280,7 @@ func (b Builder) ToSqlInsert(c *dbgo2.Context, obj any, mustFields ...string) (s
 			return
 		}
 		ctx.Table(obj)
-		return b.toSqlInsert(&ctx, datas, "")
+		return b.toSqlInsert(&ctx, datas, ignoreCase, onDuplicateKeys)
 	case reflect.Slice:
 		switch rfv.Type().Elem().Kind() {
 		case reflect.Struct:
@@ -240,12 +290,12 @@ func (b Builder) ToSqlInsert(c *dbgo2.Context, obj any, mustFields ...string) (s
 			if err != nil {
 				return
 			}
-			return b.toSqlInsert(c, datas, "")
+			return b.toSqlInsert(c, datas, ignoreCase, onDuplicateKeys)
 		default:
-			return b.toSqlInsert(c, obj, "")
+			return b.toSqlInsert(c, obj, ignoreCase, onDuplicateKeys)
 		}
 	default:
-		return b.toSqlInsert(c, obj, "")
+		return b.toSqlInsert(c, obj, ignoreCase, onDuplicateKeys)
 	}
 }
 

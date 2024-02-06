@@ -30,26 +30,28 @@ type IBuilder interface {
 	//First() (res map[string]any, Err error)
 
 	ToSql() (sql4prepare string, binds []any, err error)
+	ToSqlIncDec(symbol string, data map[string]any) (sql4prepare string, values []any, err error)
 	ToSqlSelect() (sql4prepare string, binds []any)
 	ToSqlTable() (sql4prepare string, values []any, err error)
 	ToSqlJoin() (sql4prepare string, binds []any, err error)
 	ToSqlWhere() (sql4prepare string, values []any, err error)
 	ToSqlOrderBy() (sql4prepare string)
 	ToSqlLimitOffset() (sqlSegment string, binds []any)
-	ToSqlInsert(obj any, mustFields ...string) (sqlSegment string, binds []any, err error)
+	ToSqlInsert(obj any, ignore string, onDuplicateKeys []string, mustFields ...string) (sqlSegment string, binds []any, err error)
 	ToSqlUpdate(obj any, mustFields ...string) (sqlSegment string, binds []any, err error)
 	ToSqlDelete(obj any) (sqlSegment string, binds []any, err error)
 }
 
 type IDriver interface {
 	ToSql(c *Context) (sql4prepare string, binds []any, err error)
+	ToSqlIncDec(c *Context, symbol string, data map[string]any) (sql4prepare string, values []any, err error)
 	ToSqlSelect(c *Context) (sql4prepare string, binds []any)
 	ToSqlTable(c *Context) (sql4prepare string, values []any, err error)
 	ToSqlJoin(c *Context) (sql4prepare string, binds []any, err error)
 	ToSqlWhere(c *Context) (sql4prepare string, values []any, err error)
 	ToSqlOrderBy(c *Context) (sql4prepare string)
 	ToSqlLimitOffset(c *Context) (sqlSegment string, binds []any)
-	ToSqlInsert(c *Context, obj any, mustFields ...string) (sqlSegment string, binds []any, err error)
+	ToSqlInsert(c *Context, obj any, ignore string, onDuplicateKeys []string, mustFields ...string) (sqlSegment string, binds []any, err error)
 	ToSqlUpdate(c *Context, obj any, mustFields ...string) (sqlSegment string, binds []any, err error)
 	ToSqlDelete(c *Context, obj any) (sqlSegment string, binds []any, err error)
 }

@@ -8,34 +8,6 @@ import (
 	"strings"
 )
 
-//	type WhereClause struct {
-//		Conditions []any
-//	}
-func (w *WhereClause) addTypeWhereRaw(boolean string, value string, bindings []any) *WhereClause {
-	w.Conditions = append(w.Conditions, TypeWhereRaw{LogicalOp: boolean, Column: value, Bindings: bindings})
-	return w
-}
-func (w *WhereClause) addTypeWhereNested(boolean string, value func(where IWhere)) *WhereClause {
-	w.Conditions = append(w.Conditions, TypeWhereNested{LogicalOp: boolean, Column: value})
-	return w
-}
-func (w *WhereClause) addTypeWhereSubQuery(boolean string, column string, operator string, value IBuilder) *WhereClause {
-	w.Conditions = append(w.Conditions, TypeWhereSubQuery{LogicalOp: boolean, Column: column, Operator: operator, SubQuery: value})
-	return w
-}
-func (w *WhereClause) addTypeWhereIn(boolean string, column string, operator string, value []any) *WhereClause {
-	w.Conditions = append(w.Conditions, TypeWhereIn{LogicalOp: boolean, Column: column, Operator: operator, Value: value})
-	return w
-}
-func (w *WhereClause) addTypeWhereBetween(boolean string, column string, operator string, value []any) *WhereClause {
-	w.Conditions = append(w.Conditions, TypeWhereBetween{LogicalOp: boolean, Column: column, Operator: operator, Value: value})
-	return w
-}
-func (w *WhereClause) addTypeWhereStandard(boolean string, column string, operator string, value any) *WhereClause {
-	w.Conditions = append(w.Conditions, TypeWhereStandard{LogicalOp: boolean, Column: column, Operator: operator, Value: value})
-	return w
-}
-
 // WhereRaw Add a raw where clause to the query.
 //
 //	whereRaw($sql, $bindings = [], $boolean = 'and')
@@ -199,5 +171,91 @@ func (w *WhereClause) where(boolean string, column any, args ...any) IWhere {
 	default:
 		w.Err = errors.New("not supported where params")
 	}
+	return w
+}
+
+// WhereBetween 在指定列的值位于给定范围内时添加一个"where"条件。
+//
+// relation: and/or
+// column: 列名。
+// values: 区间范围数组。
+// not: 是否取反，默认为 false。
+func (w *WhereClause) WhereBetween(relation string, column string, values any, not ...bool) IWhere {
+	if len(not) > 0 && not[0] {
+		return w.addTypeWhereBetween(relation, column, "NOT BETWEEN", values)
+	}
+	return w.addTypeWhereBetween(relation, column, "BETWEEN", values)
+}
+
+// WhereIn 在指定列的值存在于给定的集合内时添加一个"where"条件。
+//
+// relation: and/or
+// column: 要检查的列名。
+// values: 集合值。
+// not: 是否取反，默认为 false。
+func (w *WhereClause) WhereIn(relation string, column string, values any, not ...bool) IWhere {
+	if len(not) > 0 && not[0] {
+		return w.addTypeWhereIn(relation, column, "NOT IN", values)
+	}
+	return w.addTypeWhereIn(relation, column, "IN", values)
+}
+
+// WhereNull 指定列的值为 NULL 时添加一个"where"条件。
+//
+// relation: and/or
+// column: 列名。
+func (w *WhereClause) WhereNull(relation string, column string, not ...bool) IWhere {
+	if len(not) > 0 && not[0] {
+		return w.addTypeWhereStandard(relation, column, "IS NOT", "NULL")
+	}
+	return w.addTypeWhereStandard(relation, column, "IS", "NULL")
+}
+
+// WhereLike 在指定列进行模糊匹配时添加一个"where"条件。
+//
+// relation: and/or
+// column: 要进行模糊匹配的列名。
+// value: 包含通配符（%）的匹配字符串。
+func (w *WhereClause) WhereLike(relation string, column string, value string, not ...bool) IWhere {
+	if len(not) > 0 && not[0] {
+		return w.addTypeWhereStandard(relation, column, "NOT LIKE", value)
+	}
+	return w.addTypeWhereStandard(relation, column, "LIKE", value)
+}
+
+// WhereExists 使用WHERE EXISTS子查询条件。
+//
+// clause: Database 语句,或者实现了 IBuilder.ToSql() 接口的对象
+func (w *WhereClause) WhereExists(clause IBuilder, not ...bool) IWhere {
+	var b bool
+	if len(not) > 0 {
+		b = not[0]
+	}
+	w.Conditions = append(w.Conditions, TypeWhereExists{clause, b})
+	return w
+}
+
+func (w *WhereClause) addTypeWhereRaw(boolean string, value string, bindings []any) *WhereClause {
+	w.Conditions = append(w.Conditions, TypeWhereRaw{LogicalOp: boolean, Column: value, Bindings: bindings})
+	return w
+}
+func (w *WhereClause) addTypeWhereNested(boolean string, value func(where IWhere)) *WhereClause {
+	w.Conditions = append(w.Conditions, TypeWhereNested{LogicalOp: boolean, Column: value})
+	return w
+}
+func (w *WhereClause) addTypeWhereSubQuery(boolean string, column string, operator string, value IBuilder) *WhereClause {
+	w.Conditions = append(w.Conditions, TypeWhereSubQuery{LogicalOp: boolean, Column: column, Operator: operator, SubQuery: value})
+	return w
+}
+func (w *WhereClause) addTypeWhereIn(boolean string, column string, operator string, value any) *WhereClause {
+	w.Conditions = append(w.Conditions, TypeWhereIn{LogicalOp: boolean, Column: column, Operator: operator, Value: value})
+	return w
+}
+func (w *WhereClause) addTypeWhereBetween(boolean string, column string, operator string, value any) *WhereClause {
+	w.Conditions = append(w.Conditions, TypeWhereBetween{LogicalOp: boolean, Column: column, Operator: operator, Value: value})
+	return w
+}
+func (w *WhereClause) addTypeWhereStandard(boolean string, column string, operator string, value any) *WhereClause {
+	w.Conditions = append(w.Conditions, TypeWhereStandard{LogicalOp: boolean, Column: column, Operator: operator, Value: value})
 	return w
 }

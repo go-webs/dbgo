@@ -81,6 +81,7 @@ type TypeJoinOnConditionItem struct {
 type OrderByItem struct {
 	Column    string
 	Direction string // "asc" 或 "desc"
+	IsRaw     bool
 }
 
 // OrderByClause 存储排序信息。
@@ -111,7 +112,7 @@ type Paginator struct {
 
 // HavingClause 类似于WhereClause，但应用于HAVING子句。
 type HavingClause struct {
-	*WhereClause
+	WhereClause
 }
 
 // WhereClause 存储所有WHERE条件 ///////////////////start
@@ -121,42 +122,40 @@ type WhereClause struct {
 }
 type TypeWhereRaw struct {
 	LogicalOp string
-	Not       bool
 	Column    string
 	Bindings  []any
 }
 type TypeWhereNested struct {
 	LogicalOp string
-	Not       bool
 	Column    func(where IWhere)
 }
 type TypeWhereSubQuery struct {
 	LogicalOp string
-	Not       bool
 	Column    string
 	Operator  string
 	SubQuery  IBuilder
 }
 type TypeWhereStandard struct {
 	LogicalOp string
-	Not       bool
 	Column    string
 	Operator  string
 	Value     any
 }
 type TypeWhereIn struct {
 	LogicalOp string
-	Not       bool
 	Column    string
 	Operator  string
 	Value     any
 }
 type TypeWhereBetween struct {
 	LogicalOp string
-	Not       bool
 	Column    string
 	Operator  string
 	Value     any
+}
+type TypeWhereExists struct {
+	IBuilder
+	Not bool
 }
 
 //////////////// WhereClause ///////////////////end

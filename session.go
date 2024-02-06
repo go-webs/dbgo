@@ -17,6 +17,13 @@ func NewSession(master, slave *sql.DB) *Session {
 	return &Session{master, slave, nil, 0}
 }
 
+func (t *Session) execute(query string, args ...any) (int64, error) {
+	exec, err := t.Exec(query, args)
+	if err != nil {
+		return 0, err
+	}
+	return exec.RowsAffected()
+}
 func (t *Session) Exec(query string, args ...any) (sql.Result, error) {
 	if t.tx != nil {
 		return t.tx.Exec(query, args...)
@@ -90,6 +97,30 @@ func (t *Session) Query(query string, args ...any) (rows *sql.Rows, err error) {
 		}
 	}
 	return stmt.Query(args...)
+}
+
+//func (t *Session) QueryRow(query string, args ...any) (rows *sql.Row, err error) {
+//	var stmt *sql.Stmt
+//	if t.tx != nil {
+//		if stmt, err = t.tx.Prepare(query); err != nil {
+//			return
+//		}
+//	} else {
+//		if stmt, err = t.slave.Prepare(query); err != nil {
+//			return
+//		}
+//	}
+//	rows = stmt.QueryRow(args...)
+//	err = rows.Err()
+//	return
+//}
+
+func (t *Session) QueryRow(query string, args ...any) *sql.Row {
+	if t.tx != nil {
+		return t.tx.QueryRow(query, args...)
+	} else {
+		return t.slave.QueryRow(query, args...)
+	}
 }
 func (t *Session) QueryTo(bind any, query string, args ...any) (err error) {
 	var rows *sql.Rows

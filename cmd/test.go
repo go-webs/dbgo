@@ -72,7 +72,7 @@ func TestDatabase_ToSql4() {
 
 func TestDatabase_ToSqlInsert() {
 	var user = User{Name: "john"}
-	prepare, values, err := db().ToSqlInsert(&user)
+	prepare, values, err := db().ToSqlInsert(&user, "")
 	if err != nil {
 		log.Fatal(err.Error())
 	}
