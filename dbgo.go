@@ -2,6 +2,7 @@ package dbgo2
 
 import (
 	"database/sql"
+	"math"
 )
 
 type DbGo struct {
@@ -14,15 +15,34 @@ type DbGo struct {
 	//SqlLogs        []string
 	//enableQueryLog bool
 	//Error          error
-	handlers []HandlerFunc
+	handlers HandlersChain
 }
 
 type HandlerFunc func(*Context)
+type HandlersChain []HandlerFunc
+
+const abortIndex int8 = math.MaxInt8 >> 1
+
+//type handlers struct {
+//	handlers HandlersChain
+//	index    int8
+//}
+//
+//func (c *handlers) Next() {
+//	c.index++
+//	for c.index < int8(len(c.handlers)) {
+//		c.handlers[c.index](c)
+//		c.index++
+//	}
+//}
 
 func (dg *DbGo) Use(h ...HandlerFunc) *DbGo {
 	dg.handlers = append(dg.handlers, h...)
 	return dg
 }
+
+//func (dg *DbGo) Use(h ...HandlerFunc) *DbGo {
+//}
 
 // Open db
 // examples
@@ -86,44 +106,6 @@ func (dg *DbGo) Driver() IDriver {
 	return GetDriver(dg.driver)
 }
 
-//func (dg *DbGo) NewDB() *Database {
-//	return newDatabase(dg)
-//}
-
-//func (dg *DbGo) queryRow(db *sql.DB, query string, args ...any) *sql.Row {
-//	prepare, Err := db.Prepare(query)
-//	return dg.SlaveDB().QueryRow(query, args...)
-//}
-//func (dg *DbGo) QueryRow(query string, args ...any) *sql.Row {
-//	return dg.SlaveDB().QueryRow(query, args...)
-//}
-
-//func (dg *DbGo) QueryRow(query string, args ...any) *sql.Row {
-//	return dg.SlaveDB().QueryRow(query, args...)
-//}
-//func (dg *DbGo) Query(query string, args ...any) (*sql.Rows, error) {
-//	return dg.SlaveDB().Query(query, args...)
-//}
-//func (dg *DbGo) Exec(query string, args ...any) (sql.Result, error) {
-//	return dg.MasterDB().Exec(query, args...)
-//}
-//func (dg *DbGo) Begin() (*sql.Tx, error) {
-//	return dg.MasterDB().Begin()
-//}
-//func (dg *DbGo) Trans(closer ...func(*sql.Tx) error) error {
-//	var tx, Err = dg.MasterDB().Begin()
-//	if Err != nil {
-//		return Err
-//	}
-//	for _, v := range closer {
-//		Err = v(tx)
-//		if Err != nil {
-//			return tx.Rollback()
-//		}
-//	}
-//	return tx.Commit()
-//}
-
 func (dg *DbGo) NewDatabase() Database {
 	return NewDatabase(dg)
 }
@@ -133,26 +115,3 @@ func (dg *DbGo) NewSession() *Session {
 	slave := dg.SlaveDB()
 	return NewSession(master, slave)
 }
-
-//func (dg *DbGo) Transaction() error {
-//	tx, Err := dg.Begin()
-//	if Err != nil {
-//		return Err
-//	}
-//}
-
-//func (dg *DbGo) EnableQueryLog(b bool) {
-//	dg.enableQueryLog = b
-//}
-//func (dg *DbGo) recordSqlLog(queryStr string, values ...interface{}) {
-//	logrus.Debug("record sql log: "+queryStr, values)
-//	if dg.enableQueryLog {
-//		dg.SqlLogs = append(dg.SqlLogs, fmt.Sprintf("%s, %v", queryStr, values))
-//	}
-//}
-//func (dg *DbGo) LastSql() (last string) {
-//	if len(dg.SqlLogs) > 0 {
-//		last = dg.SqlLogs[len(dg.SqlLogs)-1]
-//	}
-//	return
-//}

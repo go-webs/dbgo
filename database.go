@@ -1,6 +1,7 @@
 package dbgo2
 
 import (
+	"database/sql"
 	"strings"
 )
 
@@ -27,6 +28,12 @@ func (db Database) Distinct() Database {
 // Table sets the table name for the query.
 func (db Database) Table(table any, alias ...string) Database {
 	db.Context.Table(table, alias...)
+	return db
+}
+
+// Join clause
+func (db Database) Join(table any, argOrFn ...any) Database {
+	db.Context.JoinClause.join("INNER", table, argOrFn...)
 	return db
 }
 
@@ -99,8 +106,8 @@ func (db Database) SelectRaw(raw string, binds ...any) Database {
 //	Where(["id","=",1])
 //	Where(["id",1])
 //	Where([ ["id",1],["name","=","John"],["age",">",3] ])
-func (db Database) Where(column any, argsOrCloser ...any) Database {
-	db.WhereClause.Where(column, argsOrCloser...)
+func (db Database) Where(column any, argsOrclosure ...any) Database {
+	db.WhereClause.Where(column, argsOrclosure...)
 	return db
 }
 
@@ -120,14 +127,14 @@ func (db Database) GroupBy(columns ...string) Database {
 }
 
 // Having 添加 HAVING 子句, 同where
-func (db Database) Having(column any, argsOrCloser ...any) Database {
-	db.HavingClause.Where(column, argsOrCloser...)
+func (db Database) Having(column any, argsOrclosure ...any) Database {
+	db.HavingClause.Where(column, argsOrclosure...)
 	return db
 }
 
 // HavingRaw 添加 HAVING 子句, 同where
-func (db Database) HavingRaw(raw string, argsOrCloser ...any) Database {
-	db.HavingClause.WhereRaw(raw, argsOrCloser...)
+func (db Database) HavingRaw(raw string, argsOrclosure ...any) Database {
+	db.HavingClause.WhereRaw(raw, argsOrclosure...)
 	return db
 }
 
@@ -168,11 +175,92 @@ func (db Database) Page(num int) Database {
 func (db Database) Get(columns ...string) (res []map[string]any, err error) {
 	var prepare string
 	var binds []any
-	prepare, binds, err = db.Select(columns...).Driver().ToSql(db.Context)
+	prepare, binds, err = db.Select(columns...).ToSql()
 	if err != nil {
 		return
 	}
 
-	err = db.QueryTo(&res, prepare, binds...)
+	err = db.queryToBindResult(&res, prepare, binds...)
 	return
+}
+func (db Database) First(columns ...string) (res map[string]any, err error) {
+	var prepare string
+	var binds []any
+	prepare, binds, err = db.Select(columns...).Limit(1).ToSql()
+	if err != nil {
+		return
+	}
+
+	res = make(map[string]any)
+	err = db.queryToBindResult(&res, prepare, binds...)
+	return
+}
+func (db Database) Find(id int) (res map[string]any, err error) {
+	var prepare string
+	var binds []any
+	prepare, binds, err = db.Where("id", id).Limit(1).ToSql()
+	if err != nil {
+		return
+	}
+
+	res = make(map[string]any)
+	err = db.queryToBindResult(&res, prepare, binds...)
+	return
+}
+func (db Database) To(obj any, mustFields ...string) (err error) {
+	var prepare string
+	var binds []any
+	prepare, binds, err = db.ToSqlTo(obj, mustFields...)
+	if err != nil {
+		return
+	}
+
+	err = db.queryToBindResult(obj, prepare, binds...)
+	return
+}
+func (db Database) queryToBindResult(bind any, query string, args ...any) (err error) {
+	return db.Session.QueryTo(bind, query, args...)
+}
+func (db Database) insert(obj any, mustFields ...string) (res sql.Result, err error) {
+	segment, binds, err := db.ToSqlInsert(obj, mustFields...)
+	if err != nil {
+		return res, err
+	}
+	return db.Session.Exec(segment, binds...)
+}
+func (db Database) Insert(obj any, mustFields ...string) (aff int64, err error) {
+	result, err := db.insert(obj, mustFields...)
+	if err != nil {
+		return aff, err
+	}
+	return result.RowsAffected()
+}
+func (db Database) InsertGetId(obj any, mustFields ...string) (lastInsertId int64, err error) {
+	result, err := db.insert(obj, mustFields...)
+	if err != nil {
+		return lastInsertId, err
+	}
+	return result.LastInsertId()
+}
+func (db Database) Update(obj any, mustFields ...string) (aff int64, err error) {
+	segment, binds, err := db.ToSqlUpdate(obj, mustFields...)
+	if err != nil {
+		return aff, err
+	}
+	result, err := db.Session.Exec(segment, binds...)
+	if err != nil {
+		return aff, err
+	}
+	return result.RowsAffected()
+}
+func (db Database) Delete(obj any) (aff int64, err error) {
+	segment, binds, err := db.ToSqlDelete(obj)
+	if err != nil {
+		return aff, err
+	}
+	result, err := db.Session.Exec(segment, binds...)
+	if err != nil {
+		return aff, err
+	}
+	return result.RowsAffected()
 }

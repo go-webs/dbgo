@@ -65,11 +65,11 @@ func (t *Session) Commit() (err error) {
 	t.tx = nil
 	return
 }
-func (t *Session) Trans(closer ...func(*Session) error) (err error) {
+func (t *Session) Transaction(closure ...func(*Session) error) (err error) {
 	if err = t.Begin(); err != nil {
 		return
 	}
-	for _, v := range closer {
+	for _, v := range closure {
 		err = v(t)
 		if err != nil {
 			return t.Rollback()
@@ -78,13 +78,7 @@ func (t *Session) Trans(closer ...func(*Session) error) (err error) {
 	return t.Commit()
 }
 
-func (t *Session) Query(query string, args ...any) (*sql.Rows, error) {
-	if t.tx != nil {
-		return t.tx.Query(query, args...)
-	}
-	return t.slave.Query(query, args...)
-}
-func (t *Session) QueryTo(bind any, query string, args ...any) (err error) {
+func (t *Session) Query(query string, args ...any) (rows *sql.Rows, err error) {
 	var stmt *sql.Stmt
 	if t.tx != nil {
 		if stmt, err = t.tx.Prepare(query); err != nil {
@@ -95,8 +89,11 @@ func (t *Session) QueryTo(bind any, query string, args ...any) (err error) {
 			return
 		}
 	}
+	return stmt.Query(args...)
+}
+func (t *Session) QueryTo(bind any, query string, args ...any) (err error) {
 	var rows *sql.Rows
-	if rows, err = stmt.Query(args...); err != nil {
+	if rows, err = t.Query(query, args...); err != nil {
 		return
 	}
 	return t.rowsToBind(rows, bind)
@@ -123,7 +120,8 @@ func (t *Session) rowsToBind(rows *sql.Rows, bind any) (err error) {
 }
 
 func (t *Session) rowsToStruct(rows *sql.Rows, rfv reflect.Value) error {
-	FieldTag, FieldStruct := parseBindStruct()
+	//FieldTag, FieldStruct, _ := structsParse(rfv)
+	FieldTag, FieldStruct, _ := structsTypeParse(rfv.Type())
 
 	defer rows.Close()
 
@@ -137,6 +135,8 @@ func (t *Session) rowsToStruct(rows *sql.Rows, rfv reflect.Value) error {
 
 	for rows.Next() {
 		// 要先扫描到map, 再做字段比对, 因为这里不确定具体字段数量
+		// 主要针对 select * 或者直接sql语句
+		//todo 如果是由struct转换而来, 可以新开一个方法, 不需要做转换比对过程
 		entry, err := t.rowsToMapSingle(rows, columns, count)
 		if err != nil {
 			return err
@@ -220,17 +220,4 @@ func (t *Session) rowsToMap(rows *sql.Rows, rfv reflect.Value) error {
 		}
 	}
 	return nil
-}
-
-//	type binders struct {
-//		FieldsTag []string
-//		FieldsStruct []string
-//	}
-//type binders struct {
-//	FieldTag    string
-//	FieldStruct string
-//}
-
-func parseBindStruct() (FieldTag []string, FieldStruct []string) {
-	return
 }

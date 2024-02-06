@@ -45,16 +45,38 @@ type SelectClause struct {
 //	SubQuery  Database // 若条件是一个子查询，则存储该子查询
 //}
 
-// JoinClause 描述JOIN操作。
+// JoinClause 描述JOIN操作 //////////////////start
 type JoinClause struct {
-	Type         string // JOIN类型（INNER, LEFT, RIGHT等）
-	Table        string
-	FirstColumn  string
-	Operator     string
-	SecondColumn string
-	On           WhereClause
-	Alias        string // 别名
+	JoinItems []any
+	Err       error
 }
+
+type TypeJoinSub struct {
+	IBuilder
+}
+type TypeJoinStandard struct {
+	TableClause
+	Type     string // JOIN类型（INNER, LEFT, RIGHT等）
+	Column1  string
+	Operator string
+	Column2  string
+}
+type TypeJoinOn struct {
+	TableClause
+	OnClause func(IJoin)
+	Type     string // JOIN类型（INNER, LEFT, RIGHT等）
+}
+type TypeJoinOnCondition struct {
+	Conditions []TypeJoinOnConditionItem
+}
+type TypeJoinOnConditionItem struct {
+	Relation string // and/or
+	Column1  string
+	Operator string
+	Column2  string
+}
+
+/////////////// JoinClause ////////////////end
 
 type OrderByItem struct {
 	Column    string
@@ -92,7 +114,7 @@ type HavingClause struct {
 	*WhereClause
 }
 
-// WhereClause 存储所有WHERE条件。
+// WhereClause 存储所有WHERE条件 ///////////////////start
 type WhereClause struct {
 	Conditions []any
 	Err        error
@@ -135,4 +157,11 @@ type TypeWhereBetween struct {
 	Column    string
 	Operator  string
 	Value     any
+}
+
+//////////////// WhereClause ///////////////////end
+
+type UnionClause struct {
+	IBuilder
+	UnionType string // union (all)
 }

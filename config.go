@@ -37,7 +37,6 @@ func (c ConfigCluster) init() (master []*sql.DB, slave []*sql.DB) {
 	return
 }
 func (c ConfigCluster) initDB(v *Config) *sql.DB {
-
 	db, err := sql.Open(v.Driver, v.DSN)
 	if err != nil {
 		panic(err.Error())

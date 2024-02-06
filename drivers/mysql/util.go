@@ -45,3 +45,7 @@ func ToSlice(arg any) []any {
 func NamedSprintf(format string, a ...any) string {
 	return strings.TrimSpace(regexp.MustCompile(`\s{2,}`).ReplaceAllString(fmt.Sprintf(regexp.MustCompile(`:\w+`).ReplaceAllString(format, "%s"), a...), " "))
 }
+
+func TrimPrefixAndOr(s string) string {
+	return regexp.MustCompile(`(?i)^\s*(and|or)\s+`).ReplaceAllString(s, "")
+}

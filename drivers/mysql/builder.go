@@ -11,7 +11,7 @@ import (
 const DriverName = "mysql"
 
 type Builder struct {
-	prefix string
+	//prefix string
 }
 
 func init() {
@@ -24,6 +24,10 @@ func (b Builder) ToSql(c *dbgo2.Context) (sql4prepare string, binds []any, err e
 	if err != nil {
 		return sql4prepare, binds2, err
 	}
+	joins, binds5, err := b.ToSqlJoin(c)
+	if err != nil {
+		return sql4prepare, binds5, err
+	}
 	where, binds3, err := b.ToSqlWhere(c)
 	if err != nil {
 		return sql4prepare, binds2, err
@@ -34,7 +38,9 @@ func (b Builder) ToSql(c *dbgo2.Context) (sql4prepare string, binds []any, err e
 	binds = append(binds, anies...)
 	binds = append(binds, binds3...)
 	binds = append(binds, binds4...)
-	sql4prepare = fmt.Sprintf("%s FROM %s %s %s %s", selects, table, where, orderBy, limit)
+	binds = append(binds, binds5...)
+
+	sql4prepare = NamedSprintf("SELECT :selects FROM :table :join :where :orderBy :pagination", selects, table, joins, where, orderBy, limit)
 	return
 }
 
@@ -56,32 +62,36 @@ func (Builder) ToSqlSelect(c *dbgo2.Context) (sql4prepare string, binds []any) {
 	if c.SelectClause.Distinct {
 		distinct = "DISTINCT "
 	}
-	sql4prepare = fmt.Sprintf("SELECT %s%s", distinct, strings.Join(cols, ", "))
+	sql4prepare = fmt.Sprintf("%s%s", distinct, strings.Join(cols, ", "))
 	return
 }
 
 func (b Builder) ToSqlTable(c *dbgo2.Context) (sql4prepare string, binds []any, err error) {
-	if v, ok := c.TableClause.Tables.(dbgo2.IBuilder); ok {
+	return b.buildSqlTable(c.TableClause, c.Prefix)
+}
+
+func (b Builder) buildSqlTable(tab dbgo2.TableClause, prefix string) (sql4prepare string, binds []any, err error) {
+	if v, ok := tab.Tables.(dbgo2.IBuilder); ok {
 		return v.ToSql()
 	}
-	rfv := reflect.Indirect(reflect.ValueOf(c.TableClause.Tables))
+	rfv := reflect.Indirect(reflect.ValueOf(tab.Tables))
 	switch rfv.Kind() {
 	case reflect.String:
-		sql4prepare = BackQuotes(fmt.Sprintf("%s%s", c.Prefix, c.TableClause.Tables))
+		sql4prepare = BackQuotes(fmt.Sprintf("%s%s", prefix, tab.Tables))
 	case reflect.Struct:
-		sql4prepare = b.buildTableName(rfv.Type(), c.Prefix)
+		sql4prepare = b.buildTableName(rfv.Type(), prefix)
 	case reflect.Slice:
 		if rfv.Type().Elem().Kind() == reflect.Struct {
-			sql4prepare = b.buildTableName(rfv.Type().Elem(), c.Prefix)
+			sql4prepare = b.buildTableName(rfv.Type().Elem(), prefix)
 		} else {
-			c.Err = errors.New("table param must be string or struct(slice) bind with 1 or 2 params")
+			err = errors.New("table param must be string or struct(slice) bind with 1 or 2 params")
 			return
 		}
 	default:
-		c.Err = errors.New("table must string | struct | slice")
+		err = errors.New("table must string | struct | slice")
 		return
 	}
-	return strings.TrimSpace(fmt.Sprintf("%s %s", sql4prepare, c.TableClause.Alias)), binds, err
+	return strings.TrimSpace(fmt.Sprintf("%s %s", sql4prepare, tab.Alias)), binds, err
 }
 
 func (b Builder) ToSqlWhere(c *dbgo2.Context) (sql4prepare string, binds []any, err error) {
@@ -136,6 +146,44 @@ func (b Builder) ToSqlWhere(c *dbgo2.Context) (sql4prepare string, binds []any, 
 	return
 }
 
+func (b Builder) ToSqlJoin(c *dbgo2.Context) (sql4prepare string, binds []any, err error) {
+	if c.JoinClause.Err != nil {
+		return sql4prepare, binds, c.JoinClause.Err
+	}
+	if len(c.JoinClause.JoinItems) == 0 {
+		return
+	}
+	var prepare string
+	for _, v := range c.JoinClause.JoinItems {
+		switch item := v.(type) {
+		case dbgo2.TypeJoinStandard:
+			prepare, binds, err = b.buildSqlTable(item.TableClause, c.Prefix)
+			if err != nil {
+				return
+			}
+			sql4prepare = fmt.Sprintf("%s JOIN %s ON %s %s %s", item.Type, prepare, BackQuotes(item.Column1), item.Operator, BackQuotes(item.Column2))
+		case dbgo2.TypeJoinSub:
+			sql4prepare, binds, err = item.IBuilder.ToSql()
+			if err != nil {
+				return
+			}
+		case dbgo2.TypeJoinOn:
+			var tjo dbgo2.TypeJoinOnCondition
+			item.OnClause(&tjo)
+			if len(tjo.Conditions) == 0 {
+				return
+			}
+			var sqlArr []string
+			for _, cond := range tjo.Conditions {
+				sqlArr = append(sqlArr, fmt.Sprintf("%s %s %s %s", cond.Relation, BackQuotes(cond.Column1), cond.Operator, BackQuotes(cond.Column2)))
+			}
+
+			sql4prepare = TrimPrefixAndOr(strings.Join(sqlArr, " "))
+		}
+	}
+	return
+}
+
 func (b Builder) ToSqlOrderBy(c *dbgo2.Context) (sql4prepare string) {
 	if len(c.OrderByClause.Columns) == 0 {
 		return
@@ -172,6 +220,7 @@ func (b Builder) ToSqlLimitOffset(c *dbgo2.Context) (sqlSegment string, binds []
 }
 
 func (b Builder) ToSqlInsert(c *dbgo2.Context, obj any, mustFields ...string) (sqlSegment string, binds []any, err error) {
+	var ctx = *c
 	rfv := reflect.Indirect(reflect.ValueOf(obj))
 	switch rfv.Kind() {
 	case reflect.Struct:
@@ -180,8 +229,8 @@ func (b Builder) ToSqlInsert(c *dbgo2.Context, obj any, mustFields ...string) (s
 		if err != nil {
 			return
 		}
-		c.Table(obj)
-		return b.toSqlInsert(c, datas, "")
+		ctx.Table(obj)
+		return b.toSqlInsert(&ctx, datas, "")
 	case reflect.Slice:
 		switch rfv.Type().Elem().Kind() {
 		case reflect.Struct:
@@ -208,30 +257,33 @@ func (b Builder) ToSqlUpdate(c *dbgo2.Context, obj any, mustFields ...string) (s
 		if err != nil {
 			return sqlSegment, binds, err
 		}
-		c.Table(obj)
+		var ctx = *c
+		ctx.Table(obj)
 		if pk != "" {
-			c.Where(pk, pkValue)
+			ctx.Where(pk, pkValue)
 		}
-		return b.toSqlUpdate(c, dataMap)
+		return b.toSqlUpdate(&ctx, dataMap)
 	default:
 		return b.toSqlUpdate(c, obj)
 	}
 }
 
 func (b Builder) ToSqlDelete(c *dbgo2.Context, obj any) (sqlSegment string, binds []any, err error) {
+	var ctx = *c
 	rfv := reflect.Indirect(reflect.ValueOf(obj))
 	switch rfv.Kind() {
 	case reflect.Struct:
-		pk, pkValue := dbgo2.StructToDelete(obj)
+		data, err := dbgo2.StructToDelete(obj)
 		if err != nil {
 			return sqlSegment, binds, err
 		}
-		c.Table(obj)
-		if pk != "" {
-			c.Where(pk, pkValue)
-		}
-		return b.toSqlSqlDelete(c)
+		ctx.Table(obj).Where(data)
+		return b.toSqlSqlDelete(&ctx)
+	case reflect.Int64, reflect.Int32, reflect.String:
+		ctx.Where("id", obj)
+		return b.toSqlSqlDelete(&ctx)
 	default:
-		return b.toSqlSqlDelete(c)
+		err = errors.New("obj must be struct or id value")
 	}
+	return
 }

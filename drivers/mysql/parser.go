@@ -9,24 +9,6 @@ import (
 	"strings"
 )
 
-//	func (b Builder) buildTableName(rft reflect.Type, prefix string) (tab string) {
-//		if field, ok := rft.FieldByName("TableName"); ok {
-//			if field.Tag.Get("db") != "" {
-//				tab = field.Tag.Get("db")
-//			}
-//		}
-//		if tab == "" {
-//			if tn := reflect.New(rft).Elem().MethodByName("TableName"); tn.IsValid() {
-//				tab = tn.Call(nil)[0].String()
-//			}
-//		}
-//		if tab == "" {
-//			tab = BackQuotes(fmt.Sprintf("%s%s", prefix, strings.ToLower(rft.Name())))
-//		} else {
-//			tab = BackQuotes(tab)
-//		}
-//		return
-//	}
 func (b Builder) buildTableName(rft reflect.Type, prefix string) (tab string) {
 	return BackQuotes(fmt.Sprintf("%s%s", prefix, dbgo2.StructsToTableName(rft)))
 }

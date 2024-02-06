@@ -17,11 +17,11 @@ type IBuilder interface {
 	//Tables(table any, alias ...string) Database
 	//Select(columns ...string) Database
 	//SelectRaw(raw string, binds ...any) Database
-	//Where(column any, argsOrCloser ...any) Database
+	//Where(column any, argsOrclosure ...any) Database
 	//WhereRaw(raw string, bindings ...any) Database
 	//GroupBy(columns ...string) Database
-	//Having(column any, argsOrCloser ...any) Database
-	//HavingRaw(raw string, argsOrCloser ...any) Database
+	//Having(column any, argsOrclosure ...any) Database
+	//HavingRaw(raw string, argsOrclosure ...any) Database
 	//OrderBy(column string, directions ...string) Database
 	//Limit(limit int) Database
 	//Offset(offset int) Database
@@ -32,6 +32,7 @@ type IBuilder interface {
 	ToSql() (sql4prepare string, binds []any, err error)
 	ToSqlSelect() (sql4prepare string, binds []any)
 	ToSqlTable() (sql4prepare string, values []any, err error)
+	ToSqlJoin() (sql4prepare string, binds []any, err error)
 	ToSqlWhere() (sql4prepare string, values []any, err error)
 	ToSqlOrderBy() (sql4prepare string)
 	ToSqlLimitOffset() (sqlSegment string, binds []any)
@@ -41,10 +42,11 @@ type IBuilder interface {
 }
 
 type IDriver interface {
-	ToSql(ctx *Context) (sql4prepare string, binds []any, err error)
+	ToSql(c *Context) (sql4prepare string, binds []any, err error)
 	ToSqlSelect(c *Context) (sql4prepare string, binds []any)
-	ToSqlTable(w *Context) (sql4prepare string, values []any, err error)
-	ToSqlWhere(w *Context) (sql4prepare string, values []any, err error)
+	ToSqlTable(c *Context) (sql4prepare string, values []any, err error)
+	ToSqlJoin(c *Context) (sql4prepare string, binds []any, err error)
+	ToSqlWhere(c *Context) (sql4prepare string, values []any, err error)
 	ToSqlOrderBy(c *Context) (sql4prepare string)
 	ToSqlLimitOffset(c *Context) (sqlSegment string, binds []any)
 	ToSqlInsert(c *Context, obj any, mustFields ...string) (sqlSegment string, binds []any, err error)

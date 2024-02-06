@@ -18,3 +18,12 @@ func GetDriver(driver string) IDriver {
 	defer driverLock.RUnlock()
 	return driverMap[driver]
 }
+
+func GetDrivers() (dr []string) {
+	driverLock.RLock()
+	defer driverLock.RUnlock()
+	for d := range driverMap {
+		dr = append(dr, d)
+	}
+	return
+}

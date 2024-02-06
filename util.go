@@ -43,6 +43,12 @@ func GetRandomWeightedIndex(weights []int) int {
 	}
 	return -1 // 如果权重都为 0，或者总权重为 0，则返回 -1
 }
+func As(table any, alias string) TableClause {
+	return TableClause{
+		Tables: table,
+		Alias:  alias,
+	}
+}
 
 //////////// struct field ptr 4 orm helpers ////////////
 

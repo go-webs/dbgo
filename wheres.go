@@ -4,6 +4,7 @@ import (
 	"errors"
 	"reflect"
 	"slices"
+	"sort"
 	"strings"
 )
 
@@ -131,6 +132,14 @@ func (w *WhereClause) where(boolean string, column any, args ...any) IWhere {
 	case 0:
 		rfv := reflect.Indirect(reflect.ValueOf(column))
 		switch rfv.Kind() {
+		case reflect.Map:
+			keys := rfv.MapKeys()
+			sort.Slice(keys, func(i, j int) bool {
+				return keys[i].String() < keys[j].String()
+			})
+			for _, k := range keys {
+				w.where("AND", k.Interface(), "=", rfv.MapIndex(k).Interface())
+			}
 		case reflect.Func:
 			if fn, ok := column.(func(where IWhere)); ok {
 				w.addTypeWhereNested(boolean, fn)
