@@ -22,7 +22,7 @@ type Users struct {
 	CreatedAt time.Time `jc:"created_at"`
 }
 
-func jc() *DbGo {
+func db() *DbGo {
     return *
 }
 ```
