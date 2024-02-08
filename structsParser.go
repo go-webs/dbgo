@@ -1,4 +1,4 @@
-package dbgo2
+package dbgo
 
 import (
 	"database/sql/driver"

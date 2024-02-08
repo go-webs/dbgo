@@ -1,7 +1,6 @@
 package mysql
 
 import (
-	"go-webs/dbgo2"
 	"testing"
 )
 
@@ -10,9 +9,9 @@ type User struct {
 	Name string `db:"name"`
 }
 
-var dbg = dbgo2.Open(nil)
+var dbg = dbgo.Open(nil)
 
-func db() dbgo2.Database {
+func db() dbgo.Database {
 	return dbg.NewDatabase()
 }
 
@@ -44,7 +43,7 @@ func TestDatabase_ToSql(t *testing.T) {
 }
 func TestDatabase_ToSqlInsert(t *testing.T) {
 	var user = User{Name: "john"}
-	prepare, values, err := db().ToSqlInsert(&user, "")
+	prepare, values, err := db().ToSqlInsert(&user, "", nil)
 	assertsError(t, err)
 	var expect = "INSERT INTO `User` (`name`) VALUES (?)"
 	assertsEqual(t, expect, prepare)
@@ -53,7 +52,7 @@ func TestDatabase_ToSqlInsert(t *testing.T) {
 }
 func TestDatabase_ToSqlInserts(t *testing.T) {
 	var user = []User{{Name: "John"}, {Name: "Alice"}}
-	prepare, values, err := db().ToSqlInsert(&user, "")
+	prepare, values, err := db().ToSqlInsert(&user, "", nil)
 	assertsError(t, err)
 	var expect = "INSERT INTO `User` (`name`) VALUES (?),(?)"
 	assertsEqual(t, expect, prepare)

@@ -1,11 +1,11 @@
-package dbgo2
+package dbgo
 
 func (db Database) MustFirst(columns ...string) (res map[string]any) {
-	res, db.Err = db.First(columns...)
+	res, db.Context.Err = db.First(columns...)
 	return
 }
 func (db Database) MustGet(columns ...string) (res []map[string]any) {
-	res, db.Err = db.Get(columns...)
+	res, db.Context.Err = db.Get(columns...)
 	return
 }
 func (db Database) WhereIn(column string, value any) Database {

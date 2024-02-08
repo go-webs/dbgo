@@ -1,4 +1,4 @@
-package dbgo2
+package dbgo
 
 func (c *Context) Table(table any, alias ...string) *Context {
 	var as string

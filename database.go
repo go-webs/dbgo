@@ -1,4 +1,4 @@
-package dbgo2
+package dbgo
 
 import (
 	"database/sql"
@@ -9,7 +9,7 @@ import (
 type Database struct {
 	*DbGo
 	*Session
-	*Context
+	Context *Context
 }
 
 func NewDatabase(dg *DbGo) Database {
@@ -22,7 +22,7 @@ func NewDatabase(dg *DbGo) Database {
 
 // Distinct 在查询中添加 DISTINCT 关键字，以返回唯一结果。
 func (db Database) Distinct() Database {
-	db.SelectClause.Distinct = true
+	db.Context.SelectClause.Distinct = true
 	return db
 }
 
@@ -43,17 +43,17 @@ func (db Database) Select(columns ...string) Database {
 			parts := strings.Split(strings.TrimSpace(split), " ")
 			switch len(parts) {
 			case 3:
-				db.SelectClause.Columns = append(db.SelectClause.Columns, Column{
+				db.Context.SelectClause.Columns = append(db.Context.SelectClause.Columns, Column{
 					Name:  strings.TrimSpace(parts[0]),
 					Alias: strings.TrimSpace(parts[2]),
 				})
 			case 2:
-				db.SelectClause.Columns = append(db.SelectClause.Columns, Column{
+				db.Context.SelectClause.Columns = append(db.Context.SelectClause.Columns, Column{
 					Name:  strings.TrimSpace(parts[0]),
 					Alias: strings.TrimSpace(parts[1]),
 				})
 			case 1:
-				db.SelectClause.Columns = append(db.SelectClause.Columns, Column{
+				db.Context.SelectClause.Columns = append(db.Context.SelectClause.Columns, Column{
 					Name: strings.TrimSpace(parts[0]),
 				})
 			}
@@ -64,7 +64,7 @@ func (db Database) Select(columns ...string) Database {
 
 // SelectRaw 允许直接在查询中插入原始SQL片段作为选择列。
 func (db Database) SelectRaw(raw string, binds ...any) Database {
-	db.SelectClause.Columns = append(db.SelectClause.Columns, Column{
+	db.Context.SelectClause.Columns = append(db.Context.SelectClause.Columns, Column{
 		Name:  raw,
 		IsRaw: true,
 		Binds: binds,
@@ -119,11 +119,11 @@ func (db Database) CrossJoin(table any, argOrFn ...any) Database {
 //	Where(["id",1])
 //	Where([ ["id",1],["name","=","John"],["age",">",3] ])
 func (db Database) Where(column any, argsOrclosure ...any) Database {
-	db.WhereClause.Where(column, argsOrclosure...)
+	db.Context.WhereClause.Where(column, argsOrclosure...)
 	return db
 }
 func (db Database) OrWhere(column any, argsOrclosure ...any) Database {
-	db.WhereClause.OrWhere(column, argsOrclosure...)
+	db.Context.WhereClause.OrWhere(column, argsOrclosure...)
 	return db
 }
 
@@ -132,37 +132,50 @@ func (db Database) OrWhere(column any, argsOrclosure ...any) Database {
 // sql: 原生SQL条件字符串。
 // bindings: SQL绑定参数数组。
 func (db Database) WhereRaw(raw string, bindings ...any) Database {
-	db.WhereClause.WhereRaw(raw, bindings...)
+	db.Context.WhereClause.WhereRaw(raw, bindings...)
 	return db
 }
 func (db Database) OrWhereRaw(raw string, bindings ...any) Database {
-	db.WhereClause.OrWhereRaw(raw, bindings...)
+	db.Context.WhereClause.OrWhereRaw(raw, bindings...)
 	return db
 }
 
 // GroupBy 添加 GROUP BY 子句
 func (db Database) GroupBy(columns ...string) Database {
-	db.Groups = append(db.Groups, columns...)
+	for _, col := range columns {
+		db.Context.GroupClause.Groups = append(db.Context.GroupClause.Groups, TypeGroupItem{
+			Column: col,
+		})
+	}
+	return db
+}
+func (db Database) GroupByRaw(columns ...string) Database {
+	for _, col := range columns {
+		db.Context.GroupClause.Groups = append(db.Context.GroupClause.Groups, TypeGroupItem{
+			Column: col,
+			IsRaw:  true,
+		})
+	}
 	return db
 }
 
 // Having 添加 HAVING 子句, 同where
 func (db Database) Having(column any, argsOrClosure ...any) Database {
-	db.HavingClause.Where(column, argsOrClosure...)
+	db.Context.HavingClause.Where(column, argsOrClosure...)
 	return db
 }
 func (db Database) OrHaving(column any, argsOrClosure ...any) Database {
-	db.HavingClause.OrWhere(column, argsOrClosure...)
+	db.Context.HavingClause.OrWhere(column, argsOrClosure...)
 	return db
 }
 
 // HavingRaw 添加 HAVING 子句, 同where
 func (db Database) HavingRaw(raw string, argsOrClosure ...any) Database {
-	db.HavingClause.WhereRaw(raw, argsOrClosure...)
+	db.Context.HavingClause.WhereRaw(raw, argsOrClosure...)
 	return db
 }
 func (db Database) OrHavingRaw(raw string, argsOrClosure ...any) Database {
-	db.HavingClause.OrWhereRaw(raw, argsOrClosure...)
+	db.Context.HavingClause.OrWhereRaw(raw, argsOrClosure...)
 	return db
 }
 
@@ -172,14 +185,14 @@ func (db Database) OrderBy(column string, directions ...string) Database {
 	if len(directions) > 0 {
 		direction = directions[0]
 	}
-	db.OrderByClause.Columns = append(db.OrderByClause.Columns, OrderByItem{
+	db.Context.OrderByClause.Columns = append(db.Context.OrderByClause.Columns, OrderByItem{
 		Column:    column,
 		Direction: direction,
 	})
 	return db
 }
 func (db Database) OrderByRaw(column string) Database {
-	db.OrderByClause.Columns = append(db.OrderByClause.Columns, OrderByItem{
+	db.Context.OrderByClause.Columns = append(db.Context.OrderByClause.Columns, OrderByItem{
 		Column: column,
 		IsRaw:  true,
 	})
@@ -188,19 +201,19 @@ func (db Database) OrderByRaw(column string) Database {
 
 // Limit 设置查询结果的限制数量。
 func (db Database) Limit(limit int) Database {
-	db.LimitOffsetClause.Limit = limit
+	db.Context.LimitOffsetClause.Limit = limit
 	return db
 }
 
 // Offset 设置查询结果的偏移量。
 func (db Database) Offset(offset int) Database {
-	db.LimitOffsetClause.Offset = offset
+	db.Context.LimitOffsetClause.Offset = offset
 	return db
 }
 
 // Page 页数,根据limit确定
 func (db Database) Page(num int) Database {
-	db.LimitOffsetClause.Page = num
+	db.Context.LimitOffsetClause.Page = num
 	return db
 }
 
@@ -264,21 +277,21 @@ func (db Database) insert(obj any, ignoreCase string, onDuplicateKeys []string, 
 	return db.Session.Exec(segment, binds...)
 }
 func (db Database) InsertGetId(obj any, mustFields ...string) (lastInsertId int64, err error) {
-	result, err := db.insert(obj, "", []string{}, mustFields...)
+	result, err := db.insert(obj, "", nil, mustFields...)
 	if err != nil {
 		return lastInsertId, err
 	}
 	return result.LastInsertId()
 }
 func (db Database) Insert(obj any, mustFields ...string) (aff int64, err error) {
-	result, err := db.insert(obj, "", []string{}, mustFields...)
+	result, err := db.insert(obj, "", nil, mustFields...)
 	if err != nil {
 		return aff, err
 	}
 	return result.RowsAffected()
 }
 func (db Database) InsertOrIgnore(obj any, mustFields ...string) (aff int64, err error) {
-	result, err := db.insert(obj, "IGNORE", []string{}, mustFields...)
+	result, err := db.insert(obj, "IGNORE", nil, mustFields...)
 	if err != nil {
 		return aff, err
 	}

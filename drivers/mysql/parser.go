@@ -3,17 +3,16 @@ package mysql
 import (
 	"errors"
 	"fmt"
-	"go-webs/dbgo2"
 	"reflect"
 	"sort"
 	"strings"
 )
 
 func (b Builder) buildTableName(rft reflect.Type, prefix string) (tab string) {
-	return BackQuotes(fmt.Sprintf("%s%s", prefix, dbgo2.StructsToTableName(rft)))
+	return BackQuotes(fmt.Sprintf("%s%s", prefix, dbgo.StructsToTableName(rft)))
 }
 
-func (b Builder) toSqlInsert(c *dbgo2.Context, data any, ignoreCase string, onDuplicateKeys []string) (sql4prepare string, values []any, err error) {
+func (b Builder) toSqlInsert(c *dbgo.Context, data any, ignoreCase string, onDuplicateKeys []string) (sql4prepare string, values []any, err error) {
 	rfv := reflect.Indirect(reflect.ValueOf(data))
 	var fields []string
 	var valuesPlaceholderArr []string
@@ -64,11 +63,14 @@ func (b Builder) toSqlInsert(c *dbgo2.Context, data any, ignoreCase string, onDu
 		return
 	}
 
-	var tmp []string
-	for _, v := range onDuplicateKeys {
-		tmp = append(tmp, fmt.Sprintf("%s=VALUES(%s)", BackQuotes(v), BackQuotes(v)))
+	var onDuplicateKey string
+	if len(onDuplicateKeys) > 0 {
+		var tmp []string
+		for _, v := range onDuplicateKeys {
+			tmp = append(tmp, fmt.Sprintf("%s=VALUES(%s)", BackQuotes(v), BackQuotes(v)))
+		}
+		onDuplicateKey = fmt.Sprintf("ON DUPLICATE KEY UPDATE %s", strings.Join(tmp, ", "))
 	}
-	onDuplicateKey := fmt.Sprintf("ON DUPLICATE KEY UPDATE %s", strings.Join(tmp, ", "))
 
 	var tables string
 	tables, _, err = b.ToSqlTable(c)
@@ -79,7 +81,7 @@ func (b Builder) toSqlInsert(c *dbgo2.Context, data any, ignoreCase string, onDu
 	return
 }
 
-func (b Builder) toSqlUpdate(c *dbgo2.Context, data any) (sql4prepare string, values []any, err error) {
+func (b Builder) toSqlUpdate(c *dbgo.Context, data any) (sql4prepare string, values []any, err error) {
 	rfv := reflect.Indirect(reflect.ValueOf(data))
 	var updates []string
 	switch rfv.Kind() {
@@ -112,7 +114,7 @@ func (b Builder) toSqlUpdate(c *dbgo2.Context, data any) (sql4prepare string, va
 	return
 }
 
-func (b Builder) toSqlSqlDelete(c *dbgo2.Context) (sql4prepare string, values []any, err error) {
+func (b Builder) toSqlSqlDelete(c *dbgo.Context) (sql4prepare string, values []any, err error) {
 	var tables string
 	tables, _, err = b.ToSqlTable(c)
 	if err != nil {

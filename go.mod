@@ -1,3 +1,3 @@
-module go-webs/dbgo2
+module github.com/go-webs/dbgo
 
 go 1.21

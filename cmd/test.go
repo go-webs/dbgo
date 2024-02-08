@@ -1,8 +1,7 @@
 package main
 
 import (
-	"go-webs/dbgo2"
-	_ "go-webs/dbgo2/drivers/mysql"
+	_ "github.com/go-webs/dbgo/drivers/mysql"
 	"log"
 )
 
@@ -27,8 +26,8 @@ func main() {
 	TestDatabase_ToSqlDelete()
 }
 
-func db() dbgo2.Database {
-	return dbgo2.Open(nil).NewDatabase()
+func db() dbgo.Database {
+	return dbgo.Open(nil).NewDatabase()
 }
 
 func TestDatabase_ToSql() {
@@ -72,7 +71,7 @@ func TestDatabase_ToSql4() {
 
 func TestDatabase_ToSqlInsert() {
 	var user = User{Name: "john"}
-	prepare, values, err := db().ToSqlInsert(&user, "")
+	prepare, values, err := db().ToSqlInsert(&user, "", nil)
 	if err != nil {
 		log.Fatal(err.Error())
 	}

@@ -1,4 +1,4 @@
-package dbgo2
+package dbgo
 
 type Context struct {
 	SelectClause
@@ -8,7 +8,7 @@ type Context struct {
 	HavingClause
 	OrderByClause
 	LimitOffsetClause
-	Groups []string
+	GroupClause
 
 	Prefix   string
 	Queries  string
@@ -74,6 +74,14 @@ type TypeJoinOnConditionItem struct {
 	Column1  string
 	Operator string
 	Column2  string
+}
+
+type TypeGroupItem struct {
+	Column string
+	IsRaw  bool
+}
+type GroupClause struct {
+	Groups []TypeGroupItem
 }
 
 /////////////// JoinClause ////////////////end

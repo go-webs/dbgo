@@ -1,4 +1,4 @@
-package dbgo2
+package dbgo
 
 type IWhere interface {
 	Where(column any, args ...any) IWhere

@@ -3,7 +3,6 @@ package mysql
 import (
 	"errors"
 	"fmt"
-	"go-webs/dbgo2"
 	"reflect"
 	"strings"
 )
@@ -15,10 +14,10 @@ type Builder struct {
 }
 
 func init() {
-	dbgo2.Register(DriverName, &Builder{})
+	dbgo.Register(DriverName, &Builder{})
 }
 
-func (b Builder) ToSql(c *dbgo2.Context) (sql4prepare string, binds []any, err error) {
+func (b Builder) ToSql(c *dbgo.Context) (sql4prepare string, binds []any, err error) {
 	selects, anies := b.ToSqlSelect(c)
 	table, binds2, err := b.ToSqlTable(c)
 	if err != nil {
@@ -48,7 +47,7 @@ func (b Builder) ToSql(c *dbgo2.Context) (sql4prepare string, binds []any, err e
 	return
 }
 
-func (b Builder) ToSqlIncDec(c *dbgo2.Context, symbol string, data map[string]any) (sql4prepare string, values []any, err error) {
+func (b Builder) ToSqlIncDec(c *dbgo.Context, symbol string, data map[string]any) (sql4prepare string, values []any, err error) {
 	prepare, anies, err := b.ToSqlTable(c)
 	if err != nil {
 		return sql4prepare, values, err
@@ -69,7 +68,7 @@ func (b Builder) ToSqlIncDec(c *dbgo2.Context, symbol string, data map[string]an
 	return
 }
 
-func (Builder) ToSqlSelect(c *dbgo2.Context) (sql4prepare string, binds []any) {
+func (Builder) ToSqlSelect(c *dbgo.Context) (sql4prepare string, binds []any) {
 	var cols []string
 	for _, col := range c.SelectClause.Columns {
 		if col.IsRaw {
@@ -91,12 +90,12 @@ func (Builder) ToSqlSelect(c *dbgo2.Context) (sql4prepare string, binds []any) {
 	return
 }
 
-func (b Builder) ToSqlTable(c *dbgo2.Context) (sql4prepare string, binds []any, err error) {
+func (b Builder) ToSqlTable(c *dbgo.Context) (sql4prepare string, binds []any, err error) {
 	return b.buildSqlTable(c.TableClause, c.Prefix)
 }
 
-func (b Builder) buildSqlTable(tab dbgo2.TableClause, prefix string) (sql4prepare string, binds []any, err error) {
-	if v, ok := tab.Tables.(dbgo2.IBuilder); ok {
+func (b Builder) buildSqlTable(tab dbgo.TableClause, prefix string) (sql4prepare string, binds []any, err error) {
+	if v, ok := tab.Tables.(dbgo.IBuilder); ok {
 		return v.ToSql()
 	}
 	rfv := reflect.Indirect(reflect.ValueOf(tab.Tables))
@@ -119,20 +118,20 @@ func (b Builder) buildSqlTable(tab dbgo2.TableClause, prefix string) (sql4prepar
 	return strings.TrimSpace(fmt.Sprintf("%s %s", sql4prepare, tab.Alias)), binds, err
 }
 
-func (b Builder) toSqlWhere(wc dbgo2.WhereClause) (sql4prepare string, binds []any, err error) {
+func (b Builder) toSqlWhere(wc dbgo.WhereClause) (sql4prepare string, binds []any, err error) {
 	if len(wc.Conditions) == 0 {
 		return
 	}
 	var sql4prepareArr []string
 	for _, v := range wc.Conditions {
 		switch v.(type) {
-		case dbgo2.TypeWhereRaw:
-			item := v.(dbgo2.TypeWhereRaw)
+		case dbgo.TypeWhereRaw:
+			item := v.(dbgo.TypeWhereRaw)
 			sql4prepareArr = append(sql4prepareArr, fmt.Sprintf("%s %s", item.LogicalOp, item.Column))
 			binds = append(binds, item.Bindings...)
-		case dbgo2.TypeWhereNested:
-			item := v.(dbgo2.TypeWhereNested)
-			var tmp = dbgo2.Context{}
+		case dbgo.TypeWhereNested:
+			item := v.(dbgo.TypeWhereNested)
+			var tmp = dbgo.Context{}
 			item.Column(&tmp.WhereClause)
 			prepare, anies, err := b.ToSqlWhere(&tmp)
 			if err != nil {
@@ -140,25 +139,25 @@ func (b Builder) toSqlWhere(wc dbgo2.WhereClause) (sql4prepare string, binds []a
 			}
 			sql4prepareArr = append(sql4prepareArr, fmt.Sprintf("%s (%s)", item.LogicalOp, prepare))
 			binds = append(binds, anies...)
-		case dbgo2.TypeWhereSubQuery:
-			item := v.(dbgo2.TypeWhereSubQuery)
+		case dbgo.TypeWhereSubQuery:
+			item := v.(dbgo.TypeWhereSubQuery)
 			query, anies, err := item.SubQuery.ToSql()
 			if err != nil {
 				return sql4prepare, binds, err
 			}
 			sql4prepareArr = append(sql4prepareArr, fmt.Sprintf("%s %s %s (%s)", item.LogicalOp, BackQuotes(item.Column), item.Operator, query))
 			binds = append(binds, anies...)
-		case dbgo2.TypeWhereStandard:
-			item := v.(dbgo2.TypeWhereStandard)
+		case dbgo.TypeWhereStandard:
+			item := v.(dbgo.TypeWhereStandard)
 			sql4prepareArr = append(sql4prepareArr, fmt.Sprintf("%s %s %s ?", item.LogicalOp, BackQuotes(item.Column), item.Operator))
 			binds = append(binds, item.Value)
-		case dbgo2.TypeWhereIn:
-			item := v.(dbgo2.TypeWhereIn)
+		case dbgo.TypeWhereIn:
+			item := v.(dbgo.TypeWhereIn)
 			values := ToSlice(item.Value)
 			sql4prepareArr = append(sql4prepareArr, fmt.Sprintf("%s %s %s (%s)", item.LogicalOp, BackQuotes(item.Column), item.Operator, strings.Repeat("?,", len(values)-1)+"?"))
 			binds = append(binds, values...)
-		case dbgo2.TypeWhereBetween:
-			item := v.(dbgo2.TypeWhereBetween)
+		case dbgo.TypeWhereBetween:
+			item := v.(dbgo.TypeWhereBetween)
 			values := ToSlice(item.Value)
 			sql4prepareArr = append(sql4prepareArr, fmt.Sprintf("%s %s %s ? AND ?", item.LogicalOp, BackQuotes(item.Column), item.Operator))
 			binds = append(binds, values...)
@@ -169,7 +168,7 @@ func (b Builder) toSqlWhere(wc dbgo2.WhereClause) (sql4prepare string, binds []a
 	}
 	return
 }
-func (b Builder) ToSqlWhere(c *dbgo2.Context) (sql4prepare string, binds []any, err error) {
+func (b Builder) ToSqlWhere(c *dbgo.Context) (sql4prepare string, binds []any, err error) {
 	sql4prepare, binds, err = b.toSqlWhere(c.WhereClause)
 	if sql4prepare != "" {
 		sql4prepare = fmt.Sprintf("WHERE %s", sql4prepare)
@@ -177,7 +176,7 @@ func (b Builder) ToSqlWhere(c *dbgo2.Context) (sql4prepare string, binds []any, 
 	return
 }
 
-func (b Builder) ToSqlJoin(c *dbgo2.Context) (sql4prepare string, binds []any, err error) {
+func (b Builder) ToSqlJoin(c *dbgo.Context) (sql4prepare string, binds []any, err error) {
 	if c.JoinClause.Err != nil {
 		return sql4prepare, binds, c.JoinClause.Err
 	}
@@ -187,19 +186,19 @@ func (b Builder) ToSqlJoin(c *dbgo2.Context) (sql4prepare string, binds []any, e
 	var prepare string
 	for _, v := range c.JoinClause.JoinItems {
 		switch item := v.(type) {
-		case dbgo2.TypeJoinStandard:
+		case dbgo.TypeJoinStandard:
 			prepare, binds, err = b.buildSqlTable(item.TableClause, c.Prefix)
 			if err != nil {
 				return
 			}
 			sql4prepare = fmt.Sprintf("%s JOIN %s ON %s %s %s", item.Type, prepare, BackQuotes(item.Column1), item.Operator, BackQuotes(item.Column2))
-		case dbgo2.TypeJoinSub:
+		case dbgo.TypeJoinSub:
 			sql4prepare, binds, err = item.IBuilder.ToSql()
 			if err != nil {
 				return
 			}
-		case dbgo2.TypeJoinOn:
-			var tjo dbgo2.TypeJoinOnCondition
+		case dbgo.TypeJoinOn:
+			var tjo dbgo.TypeJoinOnCondition
 			item.OnClause(&tjo)
 			if len(tjo.Conditions) == 0 {
 				return
@@ -215,22 +214,28 @@ func (b Builder) ToSqlJoin(c *dbgo2.Context) (sql4prepare string, binds []any, e
 	return
 }
 
-func (b Builder) ToSqlGroupBy(c *dbgo2.Context) (sql4prepare string) {
+func (b Builder) ToSqlGroupBy(c *dbgo.Context) (sql4prepare string) {
 	if len(c.Groups) > 0 {
-		sql4prepare = fmt.Sprintf("GROUP BY %s", strings.Join(Map[string, []string, string](c.Groups, func(s string) string {
-			return BackQuotes(s)
-		}), ","))
+		var tmp []string
+		for _, col := range c.Groups {
+			if col.IsRaw {
+				tmp = append(tmp, BackQuotes(col.Column))
+			} else {
+				tmp = append(tmp, col.Column)
+			}
+		}
+		sql4prepare = fmt.Sprintf("GROUP BY %s", strings.Join(tmp, ","))
 	}
 	return
 }
-func (b Builder) ToSqlHaving(c *dbgo2.Context) (sql4prepare string, binds []any, err error) {
+func (b Builder) ToSqlHaving(c *dbgo.Context) (sql4prepare string, binds []any, err error) {
 	sql4prepare, binds, err = b.toSqlWhere(c.HavingClause.WhereClause)
 	if sql4prepare != "" {
 		sql4prepare = fmt.Sprintf("HAVING %s", sql4prepare)
 	}
 	return
 }
-func (b Builder) ToSqlOrderBy(c *dbgo2.Context) (sql4prepare string) {
+func (b Builder) ToSqlOrderBy(c *dbgo.Context) (sql4prepare string) {
 	if len(c.OrderByClause.Columns) == 0 {
 		return
 	}
@@ -250,7 +255,7 @@ func (b Builder) ToSqlOrderBy(c *dbgo2.Context) (sql4prepare string) {
 	return
 }
 
-func (b Builder) ToSqlLimitOffset(c *dbgo2.Context) (sqlSegment string, binds []any) {
+func (b Builder) ToSqlLimitOffset(c *dbgo.Context) (sqlSegment string, binds []any) {
 	var offset int
 	if c.LimitOffsetClause.Offset > 0 {
 		offset = c.LimitOffsetClause.Offset
@@ -269,13 +274,13 @@ func (b Builder) ToSqlLimitOffset(c *dbgo2.Context) (sqlSegment string, binds []
 	return
 }
 
-func (b Builder) ToSqlInsert(c *dbgo2.Context, obj any, ignoreCase string, onDuplicateKeys []string, mustFields ...string) (sqlSegment string, binds []any, err error) {
+func (b Builder) ToSqlInsert(c *dbgo.Context, obj any, ignoreCase string, onDuplicateKeys []string, mustFields ...string) (sqlSegment string, binds []any, err error) {
 	var ctx = *c
 	rfv := reflect.Indirect(reflect.ValueOf(obj))
 	switch rfv.Kind() {
 	case reflect.Struct:
 		var datas []map[string]any
-		datas, err = dbgo2.StructsToInsert(obj, mustFields...)
+		datas, err = dbgo.StructsToInsert(obj, mustFields...)
 		if err != nil {
 			return
 		}
@@ -286,7 +291,7 @@ func (b Builder) ToSqlInsert(c *dbgo2.Context, obj any, ignoreCase string, onDup
 		case reflect.Struct:
 			c.Table(obj)
 			var datas []map[string]any
-			datas, err = dbgo2.StructsToInsert(obj, mustFields...)
+			datas, err = dbgo.StructsToInsert(obj, mustFields...)
 			if err != nil {
 				return
 			}
@@ -299,11 +304,11 @@ func (b Builder) ToSqlInsert(c *dbgo2.Context, obj any, ignoreCase string, onDup
 	}
 }
 
-func (b Builder) ToSqlUpdate(c *dbgo2.Context, obj any, mustFields ...string) (sqlSegment string, binds []any, err error) {
+func (b Builder) ToSqlUpdate(c *dbgo.Context, obj any, mustFields ...string) (sqlSegment string, binds []any, err error) {
 	rfv := reflect.Indirect(reflect.ValueOf(obj))
 	switch rfv.Kind() {
 	case reflect.Struct:
-		dataMap, pk, pkValue, err := dbgo2.StructToUpdate(obj, mustFields...)
+		dataMap, pk, pkValue, err := dbgo.StructToUpdate(obj, mustFields...)
 		if err != nil {
 			return sqlSegment, binds, err
 		}
@@ -318,12 +323,12 @@ func (b Builder) ToSqlUpdate(c *dbgo2.Context, obj any, mustFields ...string) (s
 	}
 }
 
-func (b Builder) ToSqlDelete(c *dbgo2.Context, obj any) (sqlSegment string, binds []any, err error) {
+func (b Builder) ToSqlDelete(c *dbgo.Context, obj any) (sqlSegment string, binds []any, err error) {
 	var ctx = *c
 	rfv := reflect.Indirect(reflect.ValueOf(obj))
 	switch rfv.Kind() {
 	case reflect.Struct:
-		data, err := dbgo2.StructToDelete(obj)
+		data, err := dbgo.StructToDelete(obj)
 		if err != nil {
 			return sqlSegment, binds, err
 		}
