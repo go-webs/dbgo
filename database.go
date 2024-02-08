@@ -7,14 +7,12 @@ import (
 )
 
 type Database struct {
-	*DbGo
 	*Session
 	Context *Context
 }
 
 func NewDatabase(dg *DbGo) Database {
 	return Database{
-		dg,
 		dg.NewSession(),
 		&Context{Prefix: dg.prefix},
 	}

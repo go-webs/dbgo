@@ -50,7 +50,7 @@ func structsTypeParse(rft reflect.Type) (fieldTag []string, fieldStruct []string
 				continue
 			}
 			tag := field.Tag.Get("db")
-			if tag == "-" || tag == "TableName" {
+			if tag == "-" || field.Name == "TableName" {
 				continue
 			}
 			if tag == "" {

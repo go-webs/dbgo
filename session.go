@@ -7,92 +7,93 @@ import (
 )
 
 type Session struct {
-	master        *sql.DB
-	slave         *sql.DB
+	*DbGo
+	//master        *sql.DB
+	//slave         *sql.DB
 	tx            *sql.Tx
 	autoSavePoint uint8
 }
 
-func NewSession(master, slave *sql.DB) *Session {
-	return &Session{master, slave, nil, 0}
+func NewSession(dbg *DbGo) *Session {
+	return &Session{dbg, nil, 0}
 }
 
-func (t *Session) execute(query string, args ...any) (int64, error) {
-	exec, err := t.Exec(query, args)
+func (s *Session) execute(query string, args ...any) (int64, error) {
+	exec, err := s.Exec(query, args...)
 	if err != nil {
 		return 0, err
 	}
 	return exec.RowsAffected()
 }
-func (t *Session) Exec(query string, args ...any) (sql.Result, error) {
-	if t.tx != nil {
-		return t.tx.Exec(query, args...)
+func (s *Session) Exec(query string, args ...any) (sql.Result, error) {
+	if s.tx != nil {
+		return s.tx.Exec(query, args...)
 	}
-	return t.master.Exec(query, args...)
+	return s.MasterDB().Exec(query, args...)
 }
-func (t *Session) Begin() (err error) {
-	if t.tx != nil {
-		t.autoSavePoint += 1
-		return t.SavePoint(t.autoSavePoint)
+func (s *Session) Begin() (err error) {
+	if s.tx != nil {
+		s.autoSavePoint += 1
+		return s.SavePoint(s.autoSavePoint)
 	}
-	t.tx, err = t.master.Begin()
+	s.tx, err = s.MasterDB().Begin()
 	return
 }
-func (t *Session) SavePoint(name any) (err error) {
-	_, err = t.tx.Exec("SAVEPOINT ?", name)
+func (s *Session) SavePoint(name any) (err error) {
+	_, err = s.tx.Exec("SAVEPOINT ?", name)
 	return
 }
-func (t *Session) RollbackTo(name any) (err error) {
-	_, err = t.tx.Exec("ROLLBACK TO ?", name)
+func (s *Session) RollbackTo(name any) (err error) {
+	_, err = s.tx.Exec("ROLLBACK TO ?", name)
 	return
 }
-func (t *Session) Rollback() (err error) {
-	if t.autoSavePoint > 0 {
+func (s *Session) Rollback() (err error) {
+	if s.autoSavePoint > 0 {
 		// decrease in advance whether rollbackTo fail
-		currentPoint := t.autoSavePoint
-		t.autoSavePoint -= 1
-		return t.RollbackTo(currentPoint)
+		currentPoint := s.autoSavePoint
+		s.autoSavePoint -= 1
+		return s.RollbackTo(currentPoint)
 	}
-	err = t.tx.Rollback()
+	err = s.tx.Rollback()
 	if err != nil {
 		return
 	}
-	t.tx = nil
+	s.tx = nil
 	return
 }
-func (t *Session) Commit() (err error) {
-	if t.autoSavePoint > 0 {
-		t.autoSavePoint -= 1
+func (s *Session) Commit() (err error) {
+	if s.autoSavePoint > 0 {
+		s.autoSavePoint -= 1
 		return
 	}
-	err = t.tx.Commit()
+	err = s.tx.Commit()
 	if err != nil {
 		return
 	}
-	t.tx = nil
+	s.tx = nil
 	return
 }
-func (t *Session) Transaction(closure ...func(*Session) error) (err error) {
-	if err = t.Begin(); err != nil {
+func (s *Session) Transaction(closure ...func(*Session) error) (err error) {
+	if err = s.Begin(); err != nil {
 		return
 	}
 	for _, v := range closure {
-		err = v(t)
+		err = v(s)
 		if err != nil {
-			return t.Rollback()
+			return s.Rollback()
 		}
 	}
-	return t.Commit()
+	return s.Commit()
 }
 
-func (t *Session) Query(query string, args ...any) (rows *sql.Rows, err error) {
+func (s *Session) Query(query string, args ...any) (rows *sql.Rows, err error) {
 	var stmt *sql.Stmt
-	if t.tx != nil {
-		if stmt, err = t.tx.Prepare(query); err != nil {
+	if s.tx != nil {
+		if stmt, err = s.tx.Prepare(query); err != nil {
 			return
 		}
 	} else {
-		if stmt, err = t.slave.Prepare(query); err != nil {
+		if stmt, err = s.SlaveDB().Prepare(query); err != nil {
 			return
 		}
 	}
@@ -115,42 +116,42 @@ func (t *Session) Query(query string, args ...any) (rows *sql.Rows, err error) {
 //	return
 //}
 
-func (t *Session) QueryRow(query string, args ...any) *sql.Row {
-	if t.tx != nil {
-		return t.tx.QueryRow(query, args...)
+func (s *Session) QueryRow(query string, args ...any) *sql.Row {
+	if s.tx != nil {
+		return s.tx.QueryRow(query, args...)
 	} else {
-		return t.slave.QueryRow(query, args...)
+		return s.SlaveDB().QueryRow(query, args...)
 	}
 }
-func (t *Session) QueryTo(bind any, query string, args ...any) (err error) {
+func (s *Session) QueryTo(bind any, query string, args ...any) (err error) {
 	var rows *sql.Rows
-	if rows, err = t.Query(query, args...); err != nil {
+	if rows, err = s.Query(query, args...); err != nil {
 		return
 	}
-	return t.rowsToBind(rows, bind)
+	return s.rowsToBind(rows, bind)
 }
-func (t *Session) rowsToBind(rows *sql.Rows, bind any) (err error) {
+func (s *Session) rowsToBind(rows *sql.Rows, bind any) (err error) {
 	rfv := reflect.Indirect(reflect.ValueOf(bind))
 	switch rfv.Kind() {
 	case reflect.Slice:
 		switch rfv.Type().Elem().Kind() {
 		case reflect.Map:
-			return t.rowsToMap(rows, rfv)
+			return s.rowsToMap(rows, rfv)
 		case reflect.Struct:
-			return t.rowsToStruct(rows, rfv)
+			return s.rowsToStruct(rows, rfv)
 		default:
 			return errors.New("only struct(slice) or map(slice) supported")
 		}
 	case reflect.Map:
-		return t.rowsToMap(rows, rfv)
+		return s.rowsToMap(rows, rfv)
 	case reflect.Struct:
-		return t.rowsToStruct(rows, rfv)
+		return s.rowsToStruct(rows, rfv)
 	default:
 		return errors.New("only struct(slice) or map(slice) supported")
 	}
 }
 
-func (t *Session) rowsToStruct(rows *sql.Rows, rfv reflect.Value) error {
+func (s *Session) rowsToStruct(rows *sql.Rows, rfv reflect.Value) error {
 	//FieldTag, FieldStruct, _ := structsParse(rfv)
 	FieldTag, FieldStruct, _ := structsTypeParse(rfv.Type())
 
@@ -168,13 +169,13 @@ func (t *Session) rowsToStruct(rows *sql.Rows, rfv reflect.Value) error {
 		// 要先扫描到map, 再做字段比对, 因为这里不确定具体字段数量
 		// 主要针对 select * 或者直接sql语句
 		//todo 如果是由struct转换而来, 可以新开一个方法, 不需要做转换比对过程
-		entry, err := t.rowsToMapSingle(rows, columns, count)
+		entry, err := s.rowsToMapSingle(rows, columns, count)
 		if err != nil {
 			return err
 		}
 
 		if rfv.Kind() == reflect.Slice {
-			rfvItem := reflect.New(rfv.Type().Elem())
+			rfvItem := reflect.Indirect(reflect.New(rfv.Type().Elem()))
 			for i, key := range FieldTag {
 				if v, ok := entry[key]; ok {
 					rfvItem.FieldByName(FieldStruct[i]).Set(reflect.ValueOf(v))
@@ -194,7 +195,7 @@ func (t *Session) rowsToStruct(rows *sql.Rows, rfv reflect.Value) error {
 	return nil
 }
 
-func (t *Session) rowsToMapSingle(rows *sql.Rows, columns []string, count int) (entry map[string]any, err error) {
+func (s *Session) rowsToMapSingle(rows *sql.Rows, columns []string, count int) (entry map[string]any, err error) {
 	// 一条数据的各列的值（需要指定长度为列的个数，以便获取地址）
 	values := make([]any, count)
 	// 一条数据的各列的值的地址
@@ -228,7 +229,7 @@ func (t *Session) rowsToMapSingle(rows *sql.Rows, columns []string, count int) (
 	return
 }
 
-func (t *Session) rowsToMap(rows *sql.Rows, rfv reflect.Value) error {
+func (s *Session) rowsToMap(rows *sql.Rows, rfv reflect.Value) error {
 	defer rows.Close()
 
 	columns, err := rows.Columns()
@@ -240,7 +241,7 @@ func (t *Session) rowsToMap(rows *sql.Rows, rfv reflect.Value) error {
 	count := len(columns)
 
 	for rows.Next() {
-		entry, err := t.rowsToMapSingle(rows, columns, count)
+		entry, err := s.rowsToMapSingle(rows, columns, count)
 		if err != nil {
 			return err
 		}

@@ -95,9 +95,6 @@ func (dg *DbGo) MasterDB() *sql.DB {
 }
 func (dg *DbGo) SlaveDB() *sql.DB {
 	if len(dg.slave) == 0 {
-		return nil
-	}
-	if len(dg.slave) == 0 {
 		return dg.MasterDB()
 	}
 	return dg.slave[GetRandomInt(len(dg.slave))]
@@ -111,7 +108,5 @@ func (dg *DbGo) NewDatabase() Database {
 }
 
 func (dg *DbGo) NewSession() *Session {
-	master := dg.MasterDB()
-	slave := dg.SlaveDB()
-	return NewSession(master, slave)
+	return NewSession(dg)
 }

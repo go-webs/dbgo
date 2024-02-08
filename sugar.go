@@ -72,3 +72,11 @@ func (db Database) OrWhereNotLike(column, value string) Database {
 	db.Context.WhereClause.WhereLike("OR", column, value, true)
 	return db
 }
+
+func (db Database) OrderByAsc(column string) Database {
+	return db.OrderBy(column, "ASC")
+}
+
+func (db Database) OrderByDesc(column string) Database {
+	return db.OrderBy(column, "DESC")
+}
