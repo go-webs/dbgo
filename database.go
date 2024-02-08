@@ -61,6 +61,7 @@ func (db Database) Select(columns ...string) Database {
 	}
 	return db
 }
+func (db Database) AddSelect(columns ...string) Database { return db.Select(columns...) }
 
 // SelectRaw 允许直接在查询中插入原始SQL片段作为选择列。
 func (db Database) SelectRaw(raw string, binds ...any) Database {

@@ -235,6 +235,11 @@ func (w *WhereClause) WhereExists(clause IBuilder, not ...bool) IWhere {
 	return w
 }
 
+func (w *WhereClause) WhereNot(column any, args ...any) IWhere {
+	w.Not = true
+	return w.Where(column, args...)
+}
+
 func (w *WhereClause) addTypeWhereRaw(boolean string, value string, bindings []any) *WhereClause {
 	w.Conditions = append(w.Conditions, TypeWhereRaw{LogicalOp: boolean, Column: value, Bindings: bindings})
 	return w

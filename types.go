@@ -127,6 +127,7 @@ type HavingClause struct {
 // WhereClause 存储所有WHERE条件 ///////////////////start
 type WhereClause struct {
 	Conditions []any
+	Not        bool
 	Err        error
 }
 type TypeWhereRaw struct {
