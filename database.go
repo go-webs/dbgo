@@ -461,3 +461,15 @@ func (db Database) Truncate(obj ...any) (affectedRows int64, err error) {
 	}
 	return db.Session.execute(fmt.Sprintf("TRUNCATE TABLE %s", BackQuotes(table)))
 }
+
+// SharedLock 4 select ... locking in share mode
+func (db Database) SharedLock() Database {
+	db.Context.Locking = PtrBool(false)
+	return db
+}
+
+// LockForUpdate 4 select ... for update
+func (db Database) LockForUpdate() Database {
+	db.Context.Locking = PtrBool(true)
+	return db
+}

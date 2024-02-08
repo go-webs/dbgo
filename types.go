@@ -9,6 +9,7 @@ type Context struct {
 	OrderByClause
 	LimitOffsetClause
 	GroupClause
+	Locking *bool
 
 	Prefix   string
 	Queries  string
