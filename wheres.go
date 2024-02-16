@@ -180,7 +180,19 @@ func (w *WhereClause) where(boolean string, column any, args ...any) IWhere {
 // column: 列名。
 // values: 区间范围数组。
 // not: 是否取反，默认为 false。
-func (w *WhereClause) WhereBetween(relation string, column string, values any, not ...bool) IWhere {
+func (w *WhereClause) WhereBetween(column string, values any) IWhere {
+	return w.whereBetween("AND", column, values, false)
+}
+func (w *WhereClause) OrWhereBetween(column string, values any) IWhere {
+	return w.whereBetween("OR", column, values, false)
+}
+func (w *WhereClause) WhereNotBetween(column string, values any) IWhere {
+	return w.whereBetween("AND", column, values, true)
+}
+func (w *WhereClause) OrWhereNotBetween(column string, values any) IWhere {
+	return w.whereBetween("OR", column, values, true)
+}
+func (w *WhereClause) whereBetween(relation string, column string, values any, not ...bool) IWhere {
 	if len(not) > 0 && not[0] {
 		return w.addTypeWhereBetween(relation, column, "NOT BETWEEN", values)
 	}
@@ -193,7 +205,19 @@ func (w *WhereClause) WhereBetween(relation string, column string, values any, n
 // column: 要检查的列名。
 // values: 集合值。
 // not: 是否取反，默认为 false。
-func (w *WhereClause) WhereIn(relation string, column string, values any, not ...bool) IWhere {
+func (w *WhereClause) WhereIn(column string, values any) IWhere {
+	return w.whereIn("AND", column, values, false)
+}
+func (w *WhereClause) OrWhereIn(column string, values any) IWhere {
+	return w.whereIn("Or", column, values, false)
+}
+func (w *WhereClause) WhereNotIn(column string, values any) IWhere {
+	return w.whereIn("AND", column, values, true)
+}
+func (w *WhereClause) OrWhereNotIn(column string, values any) IWhere {
+	return w.whereIn("Or", column, values, true)
+}
+func (w *WhereClause) whereIn(relation string, column string, values any, not ...bool) IWhere {
 	if len(not) > 0 && not[0] {
 		return w.addTypeWhereIn(relation, column, "NOT IN", values)
 	}
@@ -204,7 +228,11 @@ func (w *WhereClause) WhereIn(relation string, column string, values any, not ..
 //
 // relation: and/or
 // column: 列名。
-func (w *WhereClause) WhereNull(relation string, column string, not ...bool) IWhere {
+func (w *WhereClause) WhereNull(column string) IWhere      { return w.whereNull("AND", column, false) }
+func (w *WhereClause) OrWhereNull(column string) IWhere    { return w.whereNull("OR", column, false) }
+func (w *WhereClause) WhereNotNull(column string) IWhere   { return w.whereNull("AND", column, true) }
+func (w *WhereClause) OrWhereNotNull(column string) IWhere { return w.whereNull("OR", column, true) }
+func (w *WhereClause) whereNull(relation string, column string, not ...bool) IWhere {
 	if len(not) > 0 && not[0] {
 		return w.addTypeWhereStandard(relation, column, "IS NOT", "NULL")
 	}
@@ -216,7 +244,19 @@ func (w *WhereClause) WhereNull(relation string, column string, not ...bool) IWh
 // relation: and/or
 // column: 要进行模糊匹配的列名。
 // value: 包含通配符（%）的匹配字符串。
-func (w *WhereClause) WhereLike(relation string, column string, value string, not ...bool) IWhere {
+func (w *WhereClause) WhereLike(column string, value string) IWhere {
+	return w.whereLike("NAD", column, value, false)
+}
+func (w *WhereClause) OrWhereLike(column string, value string) IWhere {
+	return w.whereLike("OR", column, value, false)
+}
+func (w *WhereClause) WhereNotLike(column string, value string) IWhere {
+	return w.whereLike("NAD", column, value, true)
+}
+func (w *WhereClause) OrWhereNotLike(column string, value string) IWhere {
+	return w.whereLike("OR", column, value, true)
+}
+func (w *WhereClause) whereLike(relation string, column string, value string, not ...bool) IWhere {
 	if len(not) > 0 && not[0] {
 		return w.addTypeWhereStandard(relation, column, "NOT LIKE", value)
 	}
@@ -226,7 +266,9 @@ func (w *WhereClause) WhereLike(relation string, column string, value string, no
 // WhereExists 使用WHERE EXISTS子查询条件。
 //
 // clause: Database 语句,或者实现了 IBuilder.ToSql() 接口的对象
-func (w *WhereClause) WhereExists(clause IBuilder, not ...bool) IWhere {
+func (w *WhereClause) WhereExists(clause IBuilder) IWhere    { return w.whereExists(clause, false) }
+func (w *WhereClause) WhereNotExists(clause IBuilder) IWhere { return w.whereExists(clause, true) }
+func (w *WhereClause) whereExists(clause IBuilder, not ...bool) IWhere {
 	var b bool
 	if len(not) > 0 {
 		b = not[0]

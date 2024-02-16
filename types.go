@@ -112,11 +112,13 @@ type Expression struct {
 
 // Paginator 是用于分页查询结果的结构体，包含当前页数据及分页信息。
 type Paginator struct {
-	Items       []any
-	Total       int64
-	CurrentPage int
-	PerPage     int
-	LastPage    int
+	Limit       int              `json:"limit"`
+	Pages       int              `json:"pages"`
+	CurrentPage int              `json:"currentPage"`
+	PrevPage    int              `json:"prevPage"`
+	NextPage    int              `json:"nextPage"`
+	Total       int64            `json:"total"`
+	Data        []map[string]any `json:"data"`
 }
 
 // HavingClause 类似于WhereClause，但应用于HAVING子句。
