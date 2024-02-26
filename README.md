@@ -8,6 +8,7 @@ package main
 
 import (
 	"time"
+	"github.com/go-webs/dbgo"
 	// 一定要引入数据库驱动, 这是dbgo提供的mysql驱动,包括orm解析都在这里
 	// 其他数据库驱动, 可以自行实现, 按照 dbog.IDriver 接口实现接口
 	_ "github.com/go-webs/dbgo-driver-mysql"
