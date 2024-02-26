@@ -79,9 +79,9 @@ db().Update(&user)
 
 // 自动事务
 db().Transaction(func(db dbgo.Database) error {
-	db.Insert(&user)
+    db.Insert(&user)
     db.Update(&user)
-	db.To(&user)
+    db.To(&user)
 }
 // 手动事务
 var tx = db()
@@ -108,7 +108,10 @@ tx.RollbackTo("savepoint1") // 手动回滚到自定义的 savepoint
 
 tx.Commit()
 ```
-go style 可以使用下边 php style 的所有条件方法, 如: `join(), where(), having(), order(), limit(), offset()`
+go style 可以使用下边 php style 的所有条件方法, 如: `join(), where(), having(), order(), limit(), offset()`,如:
+```go
+db().Where("name", "John").Where("age", 35).OrWhere("age", 40).GroupBy("id").HavingRaw("count(*) > 1").OrderBy("id", "DESC").Limit(10).Offset(10).To(&user)
+```
 
 ## php laravel style
 ### Running Database Queries
