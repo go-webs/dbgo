@@ -3,39 +3,122 @@ Php Laravel orm Eloquent 的 go 实现, 与官方文档保持一致
 https://laravel.com/docs/10.x/queries
 
 ## 建表
-
 ```go
 package main
 
 import (
 	"time"
+	// 一定要引入数据库驱动, 这是dbgo提供的mysql驱动,包括orm解析都在这里
+	// 其他数据库驱动, 可以自行实现, 按照 dbog.IDriver 接口实现接口
+	_ "github.com/go-webs/dbgo-driver-mysql"
 )
 
 type Users struct {
-	Id        int       `jc:"id,primaryKey"`
-	Name      string    `jc:"name"`
-	Email     string    `jc:"email"`
-	Title     string    `jc:"title"`
-	Active    bool      `jc:"active"`
-	Votes     int       `jc:"votes"`
-	Balance   float64   `jc:"balance"`
-	CreatedAt time.Time `jc:"created_at"`
+	Id        int       `db:"id,pk"`    // 设定字段名字为 id, pk意为该字段为主键 primary key
+	Name      string    `db:"name"`     // 设定字段名字为 name, 非主键不需要做任何标记
+	Email     string    `db:"email"`
+	Title     string    `db:"title"`
+	Active    bool      `db:"active"`
+	Votes     int       `db:"votes"`
+	Balance   float64   `db:"balance"`
+	CreatedAt time.Time `db:"created_at"`   // datetime 类型, 记得要在连接的dsn后边加上 parseTime=true, 见下边 dbgo.Open() 示例
 }
-
+// TableName 手动指定 Users struct 表名为 users, 如果不指定, 则自动解析为 struct 名字, 即(Users)
 func (Users) TableName() string {
     return "users"
 }
-var dg = dbgo.Open(nil)
+var dg = dbgo.Open("mysql", "root:123456@tcp(localhost:3306)/test?charset=utf8mb4&parseTime=true")
+// 实际项目中,自定义helper函数,方便调用orm,包外调用,可以设置成大写导出的函数使用
 func db() dbgo.Database {
-	return db.NewDatabase()
+	return dg.NewDatabase()
 }
 ```
-## Database: Query SubQuery
+
+## 原生sql
+```go
+s, err := db().NewSession()
+s.Query("select * from users limit ?", 10)
+s.Exec("delete from users where id=?", 1)
+
+s.Transaction(func(db dbgo.Session) error {
+	db.Exec("insert into users (name, email) values (?, ?)", "张三", "aa@aa.com")
+    // 这里可以写多个sql语句, 事务执行
+	...
+	// error case
+	db.Rollback()
+	...
+	// finish
+	db.Commit()
+}
+```
+
+## go style
+```go
+// select xx,xx from users limit 10
+var users []Users
+db().Limit(10).To(&users)
+
+// select xx,xx from users limit 1
+var user Users
+db().To(&users)
+
+// select xx,xx from users where id=1
+var user = User{Id: 1}
+db().To(&user)
+// delete from users where id=1
+db().Delete(&user)
+
+// insert into users (name, email) values ("张三", "aa@aa.com")
+var user = User{Name: "张三", Email: "aa@aa.com"}
+db().Insert(&user)
+
+// update users set name="李四" where id=1
+var user = User{Id: 1, Name:"李四"}
+db().Update(&user)
+
+// 自动事务
+db().Transaction(func(db dbgo.Database) error {
+	db.Insert(&user)
+    db.Update(&user)
+	db.To(&user)
+}
+// 手动事务
+var tx = db()
+tx.Begin()
+tx.Rollback()
+tx.Commit()
+
+// 自动嵌套事务
+db().Transaction(func(db dbgo.Database) error {
+    db().Transaction(func(db dbgo.Database) error {
+    }
+}
+// 手动嵌套事务
+var tx = db()
+
+tx.Begin()
+
+// 自动子事务
+tx.Begin() // 自动 savepoint 子事务
+tx.Rollback()   // 自动回滚到上一个 savepoint
+// 手动子事务
+tx.SavePoint("savepoint1")    // 手动 savepoint 到 savepoint1(自定义名字)
+tx.RollbackTo("savepoint1") // 手动回滚到自定义的 savepoint
+
+tx.Commit()
+```
+go style 可以使用下边 php style 的所有条件方法, 如: `join(), where(), having(), order(), limit(), offset()`
+
+## php laravel style
 ### Running Database Queries
 ```go
 // db().Table().Select().Where().GroupBY().Having().OrderBy().Limit().Offset()
 // Retrieving All Rows From a Table
+
 db().Table("users").Get()
+// 等同于
+db().Table(Users{}).Get()    // Users{} 等同于 "users", 都可以作为表名, orm会自动识别并解析出设定的表名
+
 // Retrieving a Single Row / Column From a Table
 db().Table("users").Where("name", "John").First()
 db().Table("users").Value("email")

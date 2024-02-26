@@ -87,6 +87,20 @@ func Open(conf ...any) *DbGo {
 	return &dg
 }
 
+func (dg *DbGo) Close() (err error) {
+	if len(dg.master) > 0 {
+		for _, db := range dg.master {
+			err = db.Close()
+		}
+	}
+	if len(dg.slave) > 0 {
+		for _, db := range dg.slave {
+			err = db.Close()
+		}
+	}
+	return
+}
+
 func (dg *DbGo) MasterDB() *sql.DB {
 	if len(dg.master) == 0 {
 		return nil

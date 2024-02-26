@@ -18,6 +18,20 @@ func NewDatabase(dg *DbGo) Database {
 	}
 }
 
+// Transaction 自动事务
+func (db Database) Transaction(closure ...func(Database) error) (err error) {
+	if err = db.Begin(); err != nil {
+		return
+	}
+	for _, v := range closure {
+		err = v(db)
+		if err != nil {
+			return db.Rollback()
+		}
+	}
+	return db.Commit()
+}
+
 // Distinct 在查询中添加 DISTINCT 关键字，以返回唯一结果。
 func (db Database) Distinct() Database {
 	db.Context.SelectClause.Distinct = true
