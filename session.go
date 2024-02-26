@@ -87,34 +87,12 @@ func (s *Session) Transaction(closure ...func(*Session) error) (err error) {
 }
 
 func (s *Session) Query(query string, args ...any) (rows *sql.Rows, err error) {
-	var stmt *sql.Stmt
 	if s.tx != nil {
-		if stmt, err = s.tx.Prepare(query); err != nil {
-			return
-		}
+		return s.tx.Query(query, args...)
 	} else {
-		if stmt, err = s.SlaveDB().Prepare(query); err != nil {
-			return
-		}
+		return s.SlaveDB().Query(query, args...)
 	}
-	return stmt.Query(args...)
 }
-
-//func (t *Session) QueryRow(query string, args ...any) (rows *sql.Row, err error) {
-//	var stmt *sql.Stmt
-//	if t.tx != nil {
-//		if stmt, err = t.tx.Prepare(query); err != nil {
-//			return
-//		}
-//	} else {
-//		if stmt, err = t.slave.Prepare(query); err != nil {
-//			return
-//		}
-//	}
-//	rows = stmt.QueryRow(args...)
-//	err = rows.Err()
-//	return
-//}
 
 func (s *Session) QueryRow(query string, args ...any) *sql.Row {
 	if s.tx != nil {
