@@ -77,35 +77,39 @@ db().Insert(&user)
 var user = User{Id: 1, Name:"李四"}
 db().Update(&user)
 
-// 自动事务
-db().Transaction(func(db dbgo.Database) error {
-    db.Insert(&user)
-    db.Update(&user)
-    db.To(&user)
+// 全自动事务, 有错误会自动回滚, 无错误会自动提交
+db().Transaction(func(tx dbgo.Database) error {
+    tx.Insert(&user)
+    tx.Update(&user)
+    tx.To(&user)
 }
+
 // 手动事务
 var tx = db()
 tx.Begin()
 tx.Rollback()
 tx.Commit()
 
-// 自动嵌套事务
-db().Transaction(func(db dbgo.Database) error {
-    db().Transaction(func(db dbgo.Database) error {
+// 全自动嵌套事务
+var tx = db()
+tx.Transaction(func(db1 dbgo.Database) error {
+	db1.Insert(&user)
+	...
+    tx.Transaction(func(db2 dbgo.Database) error {
+		db2.Update(&user)
+		...
     }
 }
+
 // 手动嵌套事务
 var tx = db()
-
 tx.Begin()
-
 // 自动子事务
 tx.Begin() // 自动 savepoint 子事务
 tx.Rollback()   // 自动回滚到上一个 savepoint
 // 手动子事务
 tx.SavePoint("savepoint1")    // 手动 savepoint 到 savepoint1(自定义名字)
 tx.RollbackTo("savepoint1") // 手动回滚到自定义的 savepoint
-
 tx.Commit()
 ```
 go style 可以使用下边 php style 的所有条件方法, 如: `join(), where(), having(), order(), limit(), offset()`,如:
